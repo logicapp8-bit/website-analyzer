@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Website Tech Analyzer — AI Powered</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh; color: #e0e0e0; padding: 20px;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+
+    header { text-align: center; padding: 40px 0 30px; }
+    header h1 {
+      font-size: 2.4rem;
+      background: linear-gradient(90deg, #00d2ff, #7b2ff7);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 10px;
+    }
+    header p { color: #9a9ab0; font-size: 1rem; }
+
+    .search-box {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 24px; margin-bottom: 24px; backdrop-filter: blur(10px);
+    }
+    .input-row { display: flex; gap: 12px; }
+    #urlInput {
+      flex: 1; padding: 14px 18px; border-radius: 10px;
+      border: 1px solid rgba(123,47,247,0.4); background: rgba(0,0,0,0.3);
+      color: #fff; font-size: 1rem; outline: none; transition: border-color 0.2s;
+    }
+    #urlInput:focus { border-color: #7b2ff7; box-shadow: 0 0 0 3px rgba(123,47,247,0.15); }
+    #urlInput::placeholder { color: #555; }
+    #analyzeBtn {
+      padding: 14px 28px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #7b2ff7, #00d2ff);
+      color: #fff; font-size: 1rem; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: opacity 0.2s, transform 0.1s;
+    }
+    #analyzeBtn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    #analyzeBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .examples { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .examples span { color: #666; font-size: 0.85rem; }
+    .example-btn {
+      padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(123,47,247,0.4);
+      background: transparent; color: #9a9ab0; font-size: 0.82rem;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .example-btn:hover { background: rgba(123,47,247,0.2); color: #fff; }
+
+    #statusBar {
+      display: none; align-items: center; gap: 10px; padding: 12px 18px;
+      background: rgba(123,47,247,0.1); border: 1px solid rgba(123,47,247,0.3);
+      border-radius: 10px; margin-bottom: 20px; color: #c0a0ff; font-size: 0.9rem;
+    }
+    .spinner {
+      width: 18px; height: 18px; border: 2px solid rgba(123,47,247,0.3);
+      border-top-color: #7b2ff7; border-radius: 50%;
+      animation: spin 0.8s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #errorBox {
+      display: none; padding: 14px 18px; background: rgba(255,60,60,0.1);
+      border: 1px solid rgba(255,60,60,0.3); border-radius: 10px;
+      margin-bottom: 20px; color: #ff9090;
+    }
+
+    /* ── Section Title ── */
+    .section-title {
+      text-align: center; color: #9a9ab0; font-size: 0.78rem;
+      text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px;
+    }
+
+    /* ── Architecture Diagram ── */
+    #diagram { display: none; margin-bottom: 24px; }
+    .arch-chart {
+      display: flex; flex-direction: column; gap: 0;
+      border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);
+    }
+    .arch-layer { display: flex; align-items: stretch; min-height: 68px; }
+    .arch-layer:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .layer-label {
+      width: 120px; min-width: 120px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 10px 6px; gap: 3px;
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+    }
+    .layer-label span { font-size: 1.2rem; }
+    .layer-frontend  .layer-label { background: rgba(0,210,255,0.12); color: #00d2ff; }
+    .layer-backend   .layer-label { background: rgba(123,47,247,0.12); color: #a070ff; }
+    .layer-database  .layer-label { background: rgba(255,160,50,0.12); color: #ffaa44; }
+    .layer-infra     .layer-label { background: rgba(50,220,120,0.12); color: #40dd88; }
+    .layer-analytics .layer-label { background: rgba(255,80,180,0.12); color: #ff70c0; }
+    .layer-content {
+      flex: 1; display: flex; align-items: center; flex-wrap: wrap;
+      gap: 10px; padding: 14px 20px; background: rgba(255,255,255,0.02);
+    }
+    .tech-badge {
+      padding: 5px 14px; border-radius: 20px; font-size: 0.84rem;
+      font-weight: 600; border: 1px solid; white-space: nowrap;
+    }
+    .layer-frontend  .tech-badge { background: rgba(0,210,255,0.1); border-color: rgba(0,210,255,0.3); color: #00d2ff; }
+    .layer-backend   .tech-badge { background: rgba(123,47,247,0.1); border-color: rgba(123,47,247,0.3); color: #a070ff; }
+    .layer-database  .tech-badge { background: rgba(255,160,50,0.1); border-color: rgba(255,160,50,0.3); color: #ffaa44; }
+    .layer-infra     .tech-badge { background: rgba(50,220,120,0.1); border-color: rgba(50,220,120,0.3); color: #40dd88; }
+    .layer-analytics .tech-badge { background: rgba(255,80,180,0.1); border-color: rgba(255,80,180,0.3); color: #ff70c0; }
+    .empty-badge { color: #555; font-size: 0.82rem; font-style: italic; }
+    .arch-arrow {
+      display: flex; justify-content: center; align-items: center;
+      height: 20px; color: rgba(255,255,255,0.12); font-size: 1rem;
+      background: rgba(0,0,0,0.15);
+    }
+
+    /* ── Flow Diagrams ── */
+    #flowSection { display: none; margin-bottom: 24px; }
+
+    .flow-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 680px) { .flow-grid { grid-template-columns: 1fr; } }
+
+    .flow-box {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 20px;
+    }
+    .flow-box-title {
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px;
+      color: #9a9ab0; margin-bottom: 16px; text-align: center;
+    }
+
+    /* Request flow — vertical steps with animated line */
+    .req-flow { display: flex; flex-direction: column; gap: 0; }
+    .req-step {
+      display: flex; align-items: flex-start; gap: 12px; position: relative;
+    }
+    .req-step-left {
+      display: flex; flex-direction: column; align-items: center; width: 36px; flex-shrink: 0;
+    }
+    .req-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; background: rgba(123,47,247,0.15);
+      border: 1px solid rgba(123,47,247,0.3); flex-shrink: 0;
+    }
+    .req-line {
+      width: 2px; flex: 1; min-height: 18px;
+      background: linear-gradient(to bottom, rgba(123,47,247,0.4), rgba(0,210,255,0.2));
+    }
+    .req-step:last-child .req-line { display: none; }
+    .req-content { padding: 4px 0 18px; }
+    .req-node { font-size: 0.9rem; font-weight: 600; color: #e0e0e0; }
+    .req-detail { font-size: 0.78rem; color: #888; margin-top: 2px; }
+
+    /* User journey — horizontal steps */
+    .journey-flow {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .journey-step {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(255,255,255,0.03); border-radius: 10px; padding: 10px 14px;
+      border-left: 3px solid rgba(0,210,255,0.3);
+      transition: border-color 0.2s;
+    }
+    .journey-step:hover { border-color: rgba(0,210,255,0.7); }
+    .journey-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(0,210,255,0.15); border: 1px solid rgba(0,210,255,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 700; color: #00d2ff; flex-shrink: 0;
+    }
+    .journey-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .journey-text { flex: 1; }
+    .journey-action { font-size: 0.88rem; font-weight: 600; color: #e0e0e0; }
+    .journey-detail { font-size: 0.76rem; color: #888; margin-top: 1px; }
+
+    /* ── Analysis Result ── */
+    #result {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 28px; min-height: 100px; display: none; line-height: 1.7;
+    }
+    #result h2 {
+      color: #00d2ff; font-size: 1.15rem; margin: 24px 0 12px; padding-bottom: 6px;
+      border-bottom: 1px solid rgba(0,210,255,0.2);
+    }
+    #result h2:first-child { margin-top: 0; }
+    #result ul { padding-left: 20px; margin: 8px 0; }
+    #result li { margin: 6px 0; color: #c0c0d0; }
+    #result strong {
+      color: #00d2ff; background: rgba(0,210,255,0.1);
+      padding: 1px 8px; border-radius: 4px; font-size: 0.97em;
+    }
+    #result p { margin: 8px 0; color: #b0b0c0; }
+    #result code {
+      background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px;
+      font-family: monospace; font-size: 0.88em; color: #a0d4ff;
+    }
+    .cursor {
+      display: inline-block; width: 2px; height: 1em; background: #7b2ff7;
+      margin-left: 2px; animation: blink 0.8s step-end infinite; vertical-align: text-bottom;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    footer { text-align: center; padding: 30px 0 10px; color: #444; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔍 Website Tech Analyzer</h1>
+      <p>Enter any website URL — AI detects tech stack, architecture & request flow</p>
+    </header>
+
+    <div class="search-box">
+      <div class="input-row">
+        <input id="urlInput" type="url" placeholder="https://example.com" autocomplete="off" spellcheck="false" />
+        <button id="analyzeBtn">Analyze 🚀</button>
+      </div>
+      <div class="examples">
+        <span>Try:</span>
+        <button class="example-btn" onclick="setUrl('https://github.com')">github.com</button>
+        <button class="example-btn" onclick="setUrl('https://vercel.com')">vercel.com</button>
+        <button class="example-btn" onclick="setUrl('https://stripe.com')">stripe.com</button>
+        <button class="example-btn" onclick="setUrl('https://wikipedia.org')">wikipedia.org</button>
+        <button class="example-btn" onclick="setUrl('https://netflix.com')">netflix.com</button>
+      </div>
+    </div>
+
+    <div id="statusBar">
+      <div class="spinner"></div>
+      <span id="statusText">Fetching website and analyzing...</span>
+    </div>
+    <div id="errorBox"></div>
+
+    <!-- Architecture Diagram -->
+    <div id="diagram">
+      <div class="section-title">⚡ Tech Stack Architecture</div>
+      <div class="arch-chart">
+        <div class="arch-layer layer-frontend">
+          <div class="layer-label"><span>🎨</span>Frontend</div>
+          <div class="layer-content" id="badges-frontend"></div>
+        </div>
+        <div class="arch-arrow">↕</div>
+        <div class="arch-layer layer-backend">
+          <div class="layer-label"><span>⚙️</span>Backend</div>
+          <div class="layer-content" id="badges-backend"></div>
+        </div>
+        <div class="arch-arrow">↕</div>
+        <div class="arch-layer layer-database">
+          <div class="layer-label"><span>🗄️</span>Database</div>
+          <div class="layer-content" id="badges-database"></div>
+        </div>
+        <div class="arch-arrow">↕</div>
+        <div class="arch-layer layer-infra">
+          <div class="layer-label"><span>🌐</span>Infra / CDN</div>
+          <div class="layer-content" id="badges-infra"></div>
+        </div>
+        <div class="arch-arrow">↕</div>
+        <div class="arch-layer layer-analytics">
+          <div class="layer-label"><span>📊</span>Analytics</div>
+          <div class="layer-content" id="badges-analytics"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flow Diagrams -->
+    <div id="flowSection">
+      <div class="section-title">🔄 Website Flow</div>
+      <div class="flow-grid">
+
+        <!-- Request Flow -->
+        <div class="flow-box">
+          <div class="flow-box-title">📡 Request Flow</div>
+          <div class="req-flow" id="reqFlow"></div>
+        </div>
+
+        <!-- User Journey -->
+        <div class="flow-box">
+          <div class="flow-box-title">👤 User Journey</div>
+          <div class="journey-flow" id="journeyFlow"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Detailed Analysis -->
+    <div id="result"></div>
+
+    <footer>Powered by Groq AI (Llama 3.3 70B) &bull; Free Tier</footer>
+  </div>
+
+  <script>
+    const input = document.getElementById('urlInput');
+    const btn = document.getElementById('analyzeBtn');
+    const status = document.getElementById('statusBar');
+    const statusText = document.getElementById('statusText');
+    const errorBox = document.getElementById('errorBox');
+    const result = document.getElementById('result');
+    const diagram = document.getElementById('diagram');
+    const flowSection = document.getElementById('flowSection');
+
+    function setUrl(url) { input.value = url; input.focus(); }
+
+    function renderMarkdown(text) {
+      return text
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/^(?!<[hup])(.+)$/gm, '<p>$1</p>')
+        .replace(/<p><\/p>/g, '');
+    }
+
+    function renderDiagram(data) {
+      const map = {
+        frontend: 'badges-frontend', backend: 'badges-backend',
+        database: 'badges-database', infrastructure: 'badges-infra', analytics: 'badges-analytics'
+      };
+      let hasAny = false;
+      for (const [key, id] of Object.entries(map)) {
+        const items = data[key] || [];
+        const el = document.getElementById(id);
+        el.innerHTML = '';
+        if (items.length > 0) {
+          hasAny = true;
+          items.forEach(name => {
+            const b = document.createElement('span');
+            b.className = 'tech-badge';
+            b.textContent = name;
+            el.appendChild(b);
+          });
+        } else {
+          el.innerHTML = '<span class="empty-badge">Not detected</span>';
+        }
+      }
+      if (hasAny) diagram.style.display = 'block';
+    }
+
+    const reqIcons = {
+      'user': '🌐', 'browser': '🌐', 'cdn': '⚡', 'fastly': '⚡', 'cloudflare': '⚡',
+      'nginx': '🖥️', 'server': '🖥️', 'apache': '🖥️', 'load': '⚖️',
+      'backend': '⚙️', 'rails': '⚙️', 'django': '⚙️', 'node': '⚙️', 'api': '📡',
+      'database': '🗄️', 'postgres': '🗄️', 'mysql': '🗄️', 'mongo': '🗄️', 'redis': '⚡',
+      'response': '📦', 'cache': '💾', 'aws': '☁️', 'gcp': '☁️', 'azure': '☁️',
+    };
+    const journeyIcons = {
+      'home': '🏠', 'land': '🏠', 'search': '🔍', 'browse': '👀',
+      'login': '🔐', 'signup': '📝', 'register': '📝', 'auth': '🔐',
+      'create': '➕', 'upload': '⬆️', 'download': '⬇️', 'share': '🔗',
+      'api': '📡', 'pay': '💳', 'checkout': '💳', 'profile': '👤',
+      'watch': '▶️', 'stream': '📺', 'read': '📖', 'write': '✏️',
+    };
+
+    function getReqIcon(node) {
+      const key = node.toLowerCase();
+      for (const [k, v] of Object.entries(reqIcons)) if (key.includes(k)) return v;
+      return '🔷';
+    }
+    function getJourneyIcon(action) {
+      const key = action.toLowerCase();
+      for (const [k, v] of Object.entries(journeyIcons)) if (key.includes(k)) return v;
+      return '▶️';
+    }
+
+    function renderFlow(data) {
+      const reqEl = document.getElementById('reqFlow');
+      const journeyEl = document.getElementById('journeyFlow');
+      let hasFlow = false;
+
+      if (data.requestFlow && data.requestFlow.length > 0) {
+        hasFlow = true;
+        reqEl.innerHTML = '';
+        data.requestFlow.forEach(s => {
+          const icon = s.icon && s.icon.trim() ? s.icon : getReqIcon(s.node);
+          reqEl.innerHTML += `
+            <div class="req-step">
+              <div class="req-step-left">
+                <div class="req-icon">${icon}</div>
+                <div class="req-line"></div>
+              </div>
+              <div class="req-content">
+                <div class="req-node">${s.node}</div>
+                <div class="req-detail">${s.detail}</div>
+              </div>
+            </div>`;
+        });
+      }
+
+      if (data.userJourney && data.userJourney.length > 0) {
+        hasFlow = true;
+        journeyEl.innerHTML = '';
+        data.userJourney.forEach((s, i) => {
+          const icon = s.icon && s.icon.trim() ? s.icon : getJourneyIcon(s.action);
+          journeyEl.innerHTML += `
+            <div class="journey-step">
+              <div class="journey-num">${i + 1}</div>
+              <div class="journey-icon">${icon}</div>
+              <div class="journey-text">
+                <div class="journey-action">${s.action}</div>
+                <div class="journey-detail">${s.detail}</div>
+              </div>
+            </div>`;
+        });
+      }
+
+      if (hasFlow) flowSection.style.display = 'block';
+    }
+
+    async function fetchDiagram(analysisText) {
+      try {
+        const res = await fetch('/diagram', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ analysisText }),
+        });
+        const data = await res.json();
+        if (data && !data.error) renderDiagram(data);
+      } catch (e) {}
+    }
+
+    async function fetchFlow(analysisText, url) {
+      try {
+        const res = await fetch('/flow', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ analysisText, url }),
+        });
+        const data = await res.json();
+        if (data && !data.error) renderFlow(data);
+      } catch (e) {}
+    }
+
+    async function analyze() {
+      const url = input.value.trim();
+      if (!url) { input.focus(); return; }
+
+      errorBox.style.display = 'none';
+      result.style.display = 'none';
+      result.innerHTML = '';
+      diagram.style.display = 'none';
+      flowSection.style.display = 'none';
+      status.style.display = 'flex';
+      statusText.textContent = 'Fetching website and analyzing with AI...';
+      btn.disabled = true;
+
+      let rawText = '';
+
+      try {
+        const response = await fetch('/analyze', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        result.style.display = 'block';
+        result.innerHTML = '<span class="cursor"></span>';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+          for (const line of chunk.split('\n')) {
+            if (!line.startsWith('data: ')) continue;
+            const data = JSON.parse(line.slice(6));
+            if (data.error) {
+              errorBox.textContent = '❌ ' + data.error;
+              errorBox.style.display = 'block';
+              result.style.display = 'none';
+              break;
+            }
+            if (data.text) {
+              rawText += data.text;
+              statusText.textContent = 'AI is analyzing...';
+              result.innerHTML = renderMarkdown(rawText) + '<span class="cursor"></span>';
+            }
+            if (data.done) {
+              result.innerHTML = renderMarkdown(rawText);
+              status.style.display = 'none';
+              // Fetch diagram and flow in parallel
+              fetchDiagram(rawText);
+              fetchFlow(rawText, url);
+            }
+          }
+        }
+      } catch (err) {
+        errorBox.textContent = '❌ Connection error: ' + err.message;
+        errorBox.style.display = 'block';
+        result.style.display = 'none';
+        status.style.display = 'none';
+      }
+      btn.disabled = false;
+    }
+
+    btn.addEventListener('click', analyze);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
+  </script>
+</body>
+</html>
