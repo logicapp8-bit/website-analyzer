@@ -1,15 +1,18 @@
 const fs = require("fs");
 const path = require("path");
 
-// Force-load .env so environment doesn't interfere
-fs.readFileSync(path.join(__dirname, ".env"), "utf8").split("\n").forEach(line => {
-  const eq = line.indexOf("=");
-  if (eq > 0) {
-    const k = line.slice(0, eq).trim();
-    const v = line.slice(eq + 1).trim();
-    if (k) process.env[k] = v;
-  }
-});
+// Load .env only if it exists (local dev). On Railway, env vars are set directly.
+const envPath = path.join(__dirname, ".env");
+if (fs.existsSync(envPath)) {
+  fs.readFileSync(envPath, "utf8").split("\n").forEach(line => {
+    const eq = line.indexOf("=");
+    if (eq > 0) {
+      const k = line.slice(0, eq).trim();
+      const v = line.slice(eq + 1).trim();
+      if (k) process.env[k] = v;
+    }
+  });
+}
 
 const express = require("express");
 const Groq = require("groq-sdk");
@@ -338,7 +341,7 @@ Rules:
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3500;
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
   console.log(`🔑 Groq API Key: ${process.env.GROQ_API_KEY ? "Set ✓" : "NOT SET ✗"}`);
