@@ -99,137 +99,34 @@ app.post("/analyze", async (req, res) => {
 
     console.log("Config files found:", configResults.filter(r => r.status === "fulfilled" && r.value).map(r => r.value.path));
 
-    const prompt = `You are a website technology detector. Analyze the website below and return TWO things.
+    const prompt = `Analyze this website's tech stack. For each item write: **Name** — one line reason.
 
 URL: ${url}
-HTTP Headers: ${JSON.stringify(headers, null, 2)}
+Headers: ${JSON.stringify(headers)}
+HTML: ${truncatedHtml}
+${configFiles ? `Config files:\n${configFiles}` : ""}
 
-HTML Source (first 2000 chars):
-${truncatedHtml}
+## 🎨 Frontend
+List JS frameworks, CSS frameworks, UI libraries, fonts, build tools.
 
-${configFiles ? `Backend Config Files Found:\n${configFiles}` : "No public config files found."}
-
----
-
-PART 1 — Write the analysis in this format (technology NAME in bold first, then one-line reason):
-
-## 🎨 Frontend Technologies
-**[Name]** — reason (one line)
-List all: JS frameworks, CSS frameworks, UI libraries, fonts, icon sets, build tools.
-
-## 🏗️ Frontend Architecture
-**[Name]** — reason (one line)
-List: rendering method (SSR/CSR/SSG), state management, lazy loading, PWA.
+## 🏗️ Architecture
+Rendering method (SSR/CSR/SSG), state management, lazy loading.
 
 ## ⚙️ Backend & Server
-**[Name]** — reason (one line)
-List: server software, backend language/framework, CDN provider, caching headers.
+Server software, language/framework, CDN, caching.
 
-## 🗄️ Database & Storage
-**[Database Name]** — reason (one line)
+## 🗄️ Database
+Check config files for: mongoose=MongoDB, pg=PostgreSQL, mysql2=MySQL, redis=Redis, psycopg2=PostgreSQL, pymongo=MongoDB. WordPress=MySQL, Laravel=MySQL(inferred), Django=PostgreSQL(inferred), Rails=PostgreSQL(inferred). If unknown write **Unknown**.
 
-IMPORTANT DATABASE DETECTION RULES — check ALL of these:
+## 🔧 Security
+HTTPS, CSP, HSTS, cookies, compression.
 
-From package.json:
-- "mongoose" or "@mongodb" → **MongoDB**
-- "pg" or "pg-promise" or "postgres" or "postgresql" → **PostgreSQL**
-- "mysql2" or "mysql" or "mariadb" → **MySQL / MariaDB**
-- "mssql" or "tedious" or "msnodesqlv8" → **SQL Server (MSSQL)**
-- "sqlite3" or "better-sqlite3" → **SQLite**
-- "redis" or "ioredis" → **Redis** (cache layer)
-- "cassandra-driver" → **Cassandra**
-- "@aws-sdk/client-dynamodb" or "dynamodb" → **DynamoDB (AWS)**
-- "@google-cloud/firestore" or "firebase" → **Firestore / Firebase**
-- "sequelize" → SQL DB (check dialect in config)
-- "prisma" or "@prisma/client" → check schema.prisma for provider
-- "typeorm" → check datasource for type
-- "knex" → SQL (check connection config)
-- "databricks-sdk" or "@databricks" → **Databricks**
-
-From requirements.txt / Pipfile / pyproject.toml:
-- "psycopg2" or "asyncpg" or "databases[postgresql]" → **PostgreSQL**
-- "pymongo" or "motor" → **MongoDB**
-- "mysqlclient" or "PyMySQL" or "aiomysql" → **MySQL**
-- "pyodbc" + SQL Server connection → **SQL Server**
-- "redis" or "aioredis" → **Redis**
-- "databricks-connect" or "pyspark" + databricks → **Databricks**
-- "sqlalchemy" → check engine URL (postgresql/mysql/sqlite/mssql)
-- "django" (without other DB) → **PostgreSQL** (Django default)
-
-From Gemfile:
-- "pg" → **PostgreSQL** | "mysql2" → **MySQL** | "mongoid" or "mongo" → **MongoDB**
-- "sqlite3" → **SQLite** | "redis" → **Redis** | "activerecord" → SQL DB
-
-From config/database.yml (Rails):
-- "adapter: postgresql" → **PostgreSQL**
-- "adapter: mysql2" → **MySQL**
-- "adapter: sqlite3" → **SQLite**
-- "adapter: sqlserver" → **SQL Server**
-
-From pom.xml / build.gradle (Java):
-- "postgresql" driver → **PostgreSQL**
-- "mysql-connector" → **MySQL**
-- "mssql-jdbc" or "sqljdbc" → **SQL Server**
-- "mongodb-driver" → **MongoDB**
-- "spark-sql" or "databricks" → **Databricks**
-- "HibernateDialect" hints → detect SQL DB type
-
-From .env.example:
-- DB_CONNECTION=mysql → **MySQL**
-- DB_CONNECTION=pgsql → **PostgreSQL**
-- DB_CONNECTION=sqlite → **SQLite**
-- DATABASE_URL=postgres → **PostgreSQL**
-- DATABASE_URL=mysql → **MySQL**
-- DATABRICKS_HOST or DATABRICKS_TOKEN → **Databricks**
-
-From cookies / headers:
-- "laravel_session" cookie → **MySQL** (Laravel default)
-- "PHPSESSID" cookie → likely **MySQL** (PHP common)
-- "connect.sid" cookie → **MongoDB or Redis** (Node.js)
-- "AWSALBCORS" + DynamoDB scripts → **DynamoDB**
-- WordPress detected → **MySQL** (always)
-- Magento detected → **MySQL** (always)
-- Drupal detected → **MySQL or PostgreSQL**
-
-Databricks specific: Look for "databricks" in any config file, script URL, or meta tag.
-
-STACK-BASED INFERENCE (use when no config files found):
-- Next.js / Vercel + API routes → likely **PostgreSQL** or **MongoDB**
-- Ruby on Rails detected → likely **PostgreSQL** (Rails default since v5)
-- Django / Python detected → likely **PostgreSQL** (Django recommended)
-- Laravel / PHP framework → likely **MySQL** (Laravel default)
-- Spring Boot / Java detected → likely **MySQL** or **PostgreSQL**
-- MEAN stack (MongoDB+Express+Angular+Node) → **MongoDB**
-- Shopify store → **MySQL** (Shopify internal)
-- Drupal detected → **MySQL** (Drupal most common)
-- Magento detected → **MySQL** (Magento always)
-- Netlify/Ghost CMS → **SQLite** or **MySQL**
-- Firebase scripts found → **Firestore / Firebase Realtime DB**
-- AWS Amplify / AppSync scripts → **DynamoDB** or **Aurora**
-- Supabase client scripts → **PostgreSQL** (Supabase = PostgreSQL)
-- Databricks SDK or spark scripts → **Databricks / Delta Lake**
-
-When using inference (not direct evidence), add "(inferred)" after the name.
-Example: **PostgreSQL** (inferred from Rails stack)
-
-List ALL detected databases separately (e.g. PostgreSQL as primary + Redis as cache).
-If nothing found and no stack inference possible → **Unknown** — no evidence found.
-
-## 🔧 Configuration & Security
-**[Config Name]** — reason (one line)
-List: HTTPS/SSL, CORS headers, CSP policy, HSTS, rate limiting, authentication hints, cookie flags, compression.
-
-## 🌐 Infrastructure & DevOps
-**[Name]** — reason (one line)
-List: cloud provider (AWS/GCP/Azure), CDN, analytics tools, monitoring, CI/CD hints.
-
----
-
-Be specific and cite evidence. Always start each bullet with the technology NAME in bold.`;
+## 🌐 Infrastructure
+Cloud provider, CDN, analytics, monitoring.`;
 
     const groq = new Groq({ apiKey });
     const stream = await groq.chat.completions.create({
-      model: "gemma2-9b-it",
+      model: "llama-3.1-8b-instant",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 1200,
       stream: true,
