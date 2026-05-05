@@ -190,6 +190,29 @@ Rules:
     const text = completion.choices[0]?.message?.content?.trim() || "{}";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const data = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+    // JS-based database inference if AI returned Unknown
+    const db = (data.database || []).join(" ").toLowerCase();
+    const be = (data.backend || []).join(" ").toLowerCase();
+    const fe = (data.frontend || []).join(" ").toLowerCase();
+    const inf = (data.infrastructure || []).join(" ").toLowerCase();
+    const txt = (analysisText || "").toLowerCase();
+
+    if (!db || db.includes("unknown")) {
+      let inferred = null;
+      if (be.includes("asp.net") || be.includes("iis") || txt.includes("asp.net")) inferred = "SQL Server (inferred)";
+      else if (be.includes("laravel") || txt.includes("laravel")) inferred = "MySQL (inferred)";
+      else if (be.includes("wordpress") || txt.includes("wordpress")) inferred = "MySQL (inferred)";
+      else if (be.includes("django") || txt.includes("django")) inferred = "PostgreSQL (inferred)";
+      else if (be.includes("rails") || be.includes("ruby")) inferred = "PostgreSQL (inferred)";
+      else if (be.includes("spring") || be.includes("java")) inferred = "MySQL / PostgreSQL (inferred)";
+      else if (fe.includes("firebase") || txt.includes("firebase")) inferred = "Firestore (inferred)";
+      else if (txt.includes("supabase")) inferred = "PostgreSQL (inferred)";
+      else if (be.includes("php") || txt.includes("phpsessid")) inferred = "MySQL (inferred)";
+      else if (inf.includes("plesk")) inferred = "MySQL (inferred)";
+      if (inferred) data.database = [inferred];
+    }
+
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
