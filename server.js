@@ -41,22 +41,31 @@ app.post("/analyze", async (req, res) => {
   }
 
   try {
-    const fetchResponse = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Cache-Control": "no-cache",
-      },
-      signal: AbortSignal.timeout(20000),
-    });
+    const reqHeaders = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Cache-Control": "no-cache",
+    };
 
+    let fetchResponse = await fetch(url, { headers: reqHeaders, signal: AbortSignal.timeout(20000) });
+
+    // If blocked, try HEAD request to get at least headers
+    let html = "";
+    let blockedNote = "";
     if (!fetchResponse.ok) {
-      res.write(`data: ${JSON.stringify({ error: `Website fetch failed: ${fetchResponse.status}` })}\n\n`);
-      return res.end();
+      const headResponse = await fetch(url, { method: "HEAD", headers: reqHeaders, signal: AbortSignal.timeout(10000) }).catch(() => null);
+      if (headResponse) {
+        fetchResponse = headResponse;
+        blockedNote = `Note: Website returned ${fetchResponse.status} (access restricted). Analysis based on HTTP headers only.`;
+      } else {
+        res.write(`data: ${JSON.stringify({ error: `Could not access website (${fetchResponse.status}). The site may be blocking automated requests.` })}\n\n`);
+        return res.end();
+      }
+    } else {
+      html = await fetchResponse.text();
     }
 
-    const html = await fetchResponse.text();
     const truncatedHtml = html.slice(0, 2000);
     const allHeaders = Object.fromEntries(fetchResponse.headers.entries());
     const headers = Object.fromEntries(
@@ -112,7 +121,7 @@ app.post("/analyze", async (req, res) => {
     const prompt = `You are a website tech stack detector. Analyze the data below and write each detected technology in bold followed by a one-line reason.
 
 URL: ${url}
-Headers: ${JSON.stringify(headers)}
+${blockedNote ? blockedNote + "\n" : ""}Headers: ${JSON.stringify(headers)}
 HTML: ${truncatedHtml}
 ${configFiles ? `Config files:\n${configFiles}` : ""}
 
