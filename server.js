@@ -191,27 +191,62 @@ Rules:
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const data = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
-    // JS-based database inference if AI returned Unknown
-    const db = (data.database || []).join(" ").toLowerCase();
-    const be = (data.backend || []).join(" ").toLowerCase();
-    const fe = (data.frontend || []).join(" ").toLowerCase();
-    const inf = (data.infrastructure || []).join(" ").toLowerCase();
-    const txt = (analysisText || "").toLowerCase();
+    const be  = (data.backend       || []).join(" ").toLowerCase();
+    const fe  = (data.frontend      || []).join(" ").toLowerCase();
+    const inf = (data.infrastructure|| []).join(" ").toLowerCase();
+    const txt = (analysisText       || "").toLowerCase();
 
+    // ── Database inference ──────────────────────────────────────
+    const db = (data.database || []).join(" ").toLowerCase();
     if (!db || db.includes("unknown")) {
       let inferred = null;
-      if (be.includes("asp.net") || be.includes("iis") || txt.includes("asp.net")) inferred = "SQL Server (inferred)";
-      else if (be.includes("laravel") || txt.includes("laravel")) inferred = "MySQL (inferred)";
-      else if (be.includes("wordpress") || txt.includes("wordpress")) inferred = "MySQL (inferred)";
-      else if (be.includes("django") || txt.includes("django")) inferred = "PostgreSQL (inferred)";
-      else if (be.includes("rails") || be.includes("ruby")) inferred = "PostgreSQL (inferred)";
-      else if (be.includes("spring") || be.includes("java")) inferred = "MySQL / PostgreSQL (inferred)";
-      else if (fe.includes("firebase") || txt.includes("firebase")) inferred = "Firestore (inferred)";
-      else if (txt.includes("supabase")) inferred = "PostgreSQL (inferred)";
-      else if (be.includes("php") || txt.includes("phpsessid")) inferred = "MySQL (inferred)";
-      else if (inf.includes("plesk")) inferred = "MySQL (inferred)";
-      if (inferred) data.database = [inferred];
+      if (be.includes("asp.net") || be.includes("iis") || txt.includes("asp.net")) inferred = "SQL Server";
+      else if (be.includes("laravel") || txt.includes("laravel"))                  inferred = "MySQL";
+      else if (be.includes("wordpress") || txt.includes("wordpress"))              inferred = "MySQL";
+      else if (be.includes("django")  || txt.includes("django"))                   inferred = "PostgreSQL";
+      else if (be.includes("rails")   || be.includes("ruby"))                      inferred = "PostgreSQL";
+      else if (be.includes("spring")  || be.includes("java"))                      inferred = "MySQL / PostgreSQL";
+      else if (fe.includes("firebase")|| txt.includes("firebase"))                 inferred = "Firestore";
+      else if (txt.includes("supabase"))                                            inferred = "PostgreSQL";
+      else if (be.includes("php")     || txt.includes("phpsessid"))                inferred = "MySQL";
+      else if (inf.includes("plesk"))                                               inferred = "MySQL";
+      if (inferred) data.database = [`${inferred} (inferred)`];
     }
+
+    // ── Infrastructure / CDN inference ──────────────────────────
+    const infraItems = new Set((data.infrastructure || []).filter(i => i && !i.toLowerCase().includes("unknown")));
+    if (txt.includes("cloudflare") || txt.includes("cf-ray") || txt.includes("cf-cache")) infraItems.add("Cloudflare");
+    if (txt.includes("vercel")  || txt.includes("x-vercel"))     infraItems.add("Vercel");
+    if (txt.includes("netlify"))                                  infraItems.add("Netlify");
+    if (txt.includes("fastly"))                                   infraItems.add("Fastly CDN");
+    if (txt.includes("akamai"))                                   infraItems.add("Akamai CDN");
+    if (txt.includes("amazonaws") || txt.includes("aws") || txt.includes("cloudfront")) infraItems.add("AWS");
+    if (txt.includes("azure"))                                    infraItems.add("Azure");
+    if (txt.includes("googleapis") || txt.includes("gcp"))       infraItems.add("Google Cloud");
+    if (txt.includes("heroku"))                                   infraItems.add("Heroku");
+    if (txt.includes("railway"))                                  infraItems.add("Railway");
+    if (txt.includes("digitalocean"))                             infraItems.add("DigitalOcean");
+    if (txt.includes("plesk"))                                    infraItems.add("Plesk Hosting");
+    if (infraItems.size > 0) data.infrastructure = [...infraItems].slice(0, 5);
+
+    // ── Analytics inference ──────────────────────────────────────
+    const analyticsItems = new Set((data.analytics || []).filter(a => a && !a.toLowerCase().includes("unknown")));
+    if (txt.includes("google-analytics") || txt.includes("gtag") || txt.includes("ga.js") || txt.includes("analytics.js") || txt.includes("googletagmanager")) analyticsItems.add("Google Analytics");
+    if (txt.includes("facebook") && (txt.includes("pixel") || txt.includes("fbq")))  analyticsItems.add("Facebook Pixel");
+    if (txt.includes("hotjar"))                                   analyticsItems.add("Hotjar");
+    if (txt.includes("mixpanel"))                                 analyticsItems.add("Mixpanel");
+    if (txt.includes("segment"))                                  analyticsItems.add("Segment");
+    if (txt.includes("plausible"))                                analyticsItems.add("Plausible");
+    if (txt.includes("fullstory"))                                analyticsItems.add("FullStory");
+    if (txt.includes("intercom"))                                 analyticsItems.add("Intercom");
+    if (txt.includes("hubspot"))                                  analyticsItems.add("HubSpot");
+    if (txt.includes("crisp"))                                    analyticsItems.add("Crisp Chat");
+    if (txt.includes("clarity") && txt.includes("microsoft"))    analyticsItems.add("Microsoft Clarity");
+    if (txt.includes("amplitude"))                                analyticsItems.add("Amplitude");
+    if (txt.includes("heap"))                                     analyticsItems.add("Heap");
+    if (txt.includes("datadog"))                                  analyticsItems.add("Datadog");
+    if (txt.includes("sentry"))                                   analyticsItems.add("Sentry");
+    if (analyticsItems.size > 0) data.analytics = [...analyticsItems].slice(0, 5);
 
     res.json(data);
   } catch (err) {
