@@ -66,7 +66,7 @@ app.post("/analyze", async (req, res) => {
       html = await fetchResponse.text();
     }
 
-    const truncatedHtml = html.slice(0, 2000);
+    const truncatedHtml = html.slice(0, 4000);
     const allHeaders = Object.fromEntries(fetchResponse.headers.entries());
     const headers = Object.fromEntries(
       Object.entries(allHeaders).filter(([k]) =>
@@ -118,33 +118,33 @@ app.post("/analyze", async (req, res) => {
 
     console.log("Config files found:", configResults.filter(r => r.status === "fulfilled" && r.value).map(r => r.value.path));
 
-    const prompt = `You are a website tech stack detector. Analyze the data below and write each detected technology in bold followed by a one-line reason.
+    const prompt = `You are an expert website technology detector. Look for SPECIFIC technology names — not generic ones like "HTML" or "CSS" or "JavaScript". Find the actual frameworks, libraries and tools.
 
 URL: ${url}
-${blockedNote ? blockedNote + "\n" : ""}Headers: ${JSON.stringify(headers)}
-HTML: ${truncatedHtml}
-${configFiles ? `Config files:\n${configFiles}` : ""}
+${blockedNote ? blockedNote + "\n" : ""}HTTP Headers: ${JSON.stringify(headers)}
+HTML Source: ${truncatedHtml}
+${configFiles ? `Config Files:\n${configFiles}` : ""}
 
-Respond with these sections:
+Detect SPECIFIC technologies (e.g. React not "JavaScript", Tailwind not "CSS", Next.js not "framework").
+Write each as: **TechName** — one-line evidence
 
-## 🎨 Frontend
-**TechName** — reason
+## 🎨 Frontend Technologies
+Look for: script src names (react, vue, angular, svelte, jquery), CSS class patterns (tw- = Tailwind, bootstrap classes), link tags, meta generators, bundler hints (webpack chunks, vite, parcel), font/icon libraries.
 
-## 🏗️ Architecture
-**TechName** — reason
+## 🏗️ Frontend Architecture
+Rendering: SSR (Next.js/Nuxt), CSR (React/Vue SPA), SSG (Gatsby/Hugo). State management, lazy loading, PWA manifest.
 
 ## ⚙️ Backend & Server
-**TechName** — reason
+From headers: Server (nginx/apache/IIS), X-Powered-By (PHP/Express/ASP.NET). CDN hints, response headers framework clues.
 
 ## 🗄️ Database
-**TechName** — reason
-(Rules: mongoose=MongoDB, pg=PostgreSQL, mysql2=MySQL, ASP.NET/IIS=SQL Server, WordPress=MySQL, Laravel=MySQL, Django=PostgreSQL, Rails=PostgreSQL, Firebase=Firestore. If no evidence write **Unknown**.)
+From config files: mongoose→MongoDB, pg→PostgreSQL, mysql2→MySQL. Stack inference: ASP.NET→SQL Server, WordPress→MySQL, Laravel→MySQL, Django→PostgreSQL, Rails→PostgreSQL. Write **Unknown** if no evidence.
 
 ## 🔧 Security
-**TechName** — reason
+HTTPS, HSTS, CSP header, X-Frame-Options, cookie flags.
 
 ## 🌐 Infrastructure
-**TechName** — reason`;
+CDN (Cloudflare/Fastly/Akamai), cloud (AWS/GCP/Azure/Vercel/Netlify), analytics scripts (gtag=Google Analytics, fbq=Facebook Pixel, hotjar, mixpanel).`;
 
     const groq = new Groq({ apiKey });
     const stream = await groq.chat.completions.create({
