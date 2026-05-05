@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Website Tech Analyzer — AI Powered</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -53,10 +54,47 @@
     }
     .example-btn:hover { background: rgba(123,47,247,0.2); color: #fff; }
 
+    /* ── Server Banner ── */
+    #serverBanner {
+      display: none; align-items: center; gap: 14px; padding: 14px 20px;
+      background: rgba(0,210,255,0.07); border: 1px solid rgba(0,210,255,0.25);
+      border-radius: 12px; margin-bottom: 16px;
+    }
+    .server-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .server-info { flex: 1; }
+    .server-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; color: #9a9ab0; margin-bottom: 2px; }
+    .server-name {
+      font-size: 1.2rem; font-weight: 700;
+      background: linear-gradient(90deg, #00d2ff, #7b2ff7);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .server-url { font-size: 0.75rem; color: #666; margin-top: 2px; word-break: break-all; }
+    .server-badge {
+      padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      background: rgba(0,210,255,0.12); border: 1px solid rgba(0,210,255,0.3); color: #00d2ff;
+    }
+
+    /* ── Progress Bar ── */
+    #progressWrap {
+      display: none; margin-bottom: 20px;
+    }
+    #progressTrack {
+      height: 4px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;
+    }
+    #progressFill {
+      height: 100%; width: 0%; border-radius: 4px;
+      background: linear-gradient(90deg, #7b2ff7, #00d2ff);
+      transition: width 0.6s ease-out;
+    }
+    #progressLabel {
+      text-align: right; font-size: 0.72rem; color: #666; margin-top: 4px;
+    }
+
     #statusBar {
       display: none; align-items: center; gap: 10px; padding: 12px 18px;
       background: rgba(123,47,247,0.1); border: 1px solid rgba(123,47,247,0.3);
-      border-radius: 10px; margin-bottom: 20px; color: #c0a0ff; font-size: 0.9rem;
+      border-radius: 10px; margin-bottom: 12px; color: #c0a0ff; font-size: 0.9rem;
     }
     .spinner {
       width: 18px; height: 18px; border: 2px solid rgba(123,47,247,0.3);
@@ -203,6 +241,22 @@
     }
     @keyframes blink { 50% { opacity: 0; } }
 
+    /* ── Visual Flow Diagram ── */
+    #visualDiagram { display: none; margin-bottom: 24px; }
+    .vd-wrap {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 24px; overflow-x: auto; text-align: center;
+    }
+    .vd-wrap .mermaid { display: inline-block; min-width: 400px; }
+    .vd-wrap svg { max-width: 100%; height: auto; }
+    .vd-actions { display: flex; justify-content: flex-end; margin-top: 12px; gap: 8px; }
+    .vd-btn {
+      padding: 6px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05); color: #9a9ab0; font-size: 0.8rem;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .vd-btn:hover { background: rgba(123,47,247,0.2); color: #fff; border-color: rgba(123,47,247,0.4); }
+
     footer { text-align: center; padding: 30px 0 10px; color: #444; font-size: 0.8rem; }
   </style>
 </head>
@@ -228,10 +282,28 @@
       </div>
     </div>
 
+    <!-- Server Banner -->
+    <div id="serverBanner">
+      <div class="server-icon">🌐</div>
+      <div class="server-info">
+        <div class="server-label">Analyzing Server</div>
+        <div class="server-name" id="serverName">example.com</div>
+        <div class="server-url" id="serverUrl"></div>
+      </div>
+      <span class="server-badge" id="serverStatus">Live</span>
+    </div>
+
     <div id="statusBar">
       <div class="spinner"></div>
       <span id="statusText">Fetching website and analyzing...</span>
     </div>
+
+    <!-- Progress Bar -->
+    <div id="progressWrap">
+      <div id="progressTrack"><div id="progressFill"></div></div>
+      <div id="progressLabel">0%</div>
+    </div>
+
     <div id="errorBox"></div>
 
     <!-- Architecture Diagram -->
@@ -265,6 +337,17 @@
       </div>
     </div>
 
+    <!-- Visual Flow Diagram -->
+    <div id="visualDiagram">
+      <div class="section-title">🗺️ Tech Stack Flow Diagram</div>
+      <div class="vd-wrap">
+        <div class="mermaid" id="mermaidChart"></div>
+      </div>
+      <div class="vd-actions">
+        <button class="vd-btn" onclick="downloadDiagram()">⬇️ Download SVG</button>
+      </div>
+    </div>
+
     <!-- Flow Diagrams -->
     <div id="flowSection">
       <div class="section-title">🔄 Website Flow</div>
@@ -292,6 +375,26 @@
   </div>
 
   <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      themeVariables: {
+        background: '#1a1a2e',
+        primaryColor: '#2d1b69',
+        primaryTextColor: '#e0e0ff',
+        primaryBorderColor: '#7b2ff7',
+        lineColor: '#00d2ff',
+        secondaryColor: '#0a2a3a',
+        tertiaryColor: '#1a2a1a',
+        nodeBorder: '#444466',
+        clusterBkg: '#1a1a2e',
+        titleColor: '#00d2ff',
+        edgeLabelBackground: '#1a1a2e',
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '14px',
+      }
+    });
+
     const input = document.getElementById('urlInput');
     const btn = document.getElementById('analyzeBtn');
     const status = document.getElementById('statusBar');
@@ -300,6 +403,49 @@
     const result = document.getElementById('result');
     const diagram = document.getElementById('diagram');
     const flowSection = document.getElementById('flowSection');
+    const visualDiagram = document.getElementById('visualDiagram');
+    const serverBanner = document.getElementById('serverBanner');
+    const serverName = document.getElementById('serverName');
+    const serverUrl = document.getElementById('serverUrl');
+    const serverStatus = document.getElementById('serverStatus');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressFill = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+
+    let progressTimer = null;
+
+    function setProgress(pct) {
+      progressFill.style.width = pct + '%';
+      progressLabel.textContent = Math.round(pct) + '%';
+    }
+
+    function startProgress() {
+      progressWrap.style.display = 'block';
+      setProgress(0);
+      setTimeout(() => setProgress(8), 100);
+      // Slowly creep toward 88% over ~20s
+      let current = 8;
+      progressTimer = setInterval(() => {
+        if (current < 88) {
+          const step = (88 - current) * 0.04;
+          current += Math.max(step, 0.3);
+          setProgress(current);
+        }
+      }, 400);
+    }
+
+    function finishProgress() {
+      clearInterval(progressTimer);
+      setProgress(100);
+      setTimeout(() => { progressWrap.style.display = 'none'; }, 700);
+    }
+
+    function getDomain(url) {
+      try {
+        const u = new URL(url);
+        return u.hostname.replace(/^www\./, '');
+      } catch { return url; }
+    }
 
     function setUrl(url) { input.value = url; input.focus(); }
 
@@ -313,6 +459,65 @@
         .replace(/\n\n/g, '</p><p>')
         .replace(/^(?!<[hup])(.+)$/gm, '<p>$1</p>')
         .replace(/<p><\/p>/g, '');
+    }
+
+    async function renderVisualDiagram(data) {
+      const fe  = (data.frontend      || []).slice(0, 3).join(' / ') || 'Frontend';
+      const be  = (data.backend       || []).slice(0, 3).join(' / ') || 'Backend';
+      const db  = (data.database      || []).slice(0, 2).join(' / ') || 'Database';
+      const cdn = (data.infrastructure|| []).slice(0, 2).join(' / ') || 'CDN / Infra';
+      const an  = (data.analytics     || []).slice(0, 2).join(' / ');
+
+      const esc = s => s.replace(/["\[\]()]/g, '').replace(/\//g, ' /');
+
+      let def = `flowchart TD
+    User(["👤 User / Browser"]):::userNode
+    CDN["⚡ ${esc(cdn)}"]:::cdnNode
+    FE["🎨 ${esc(fe)}"]:::feNode
+    BE["⚙️ ${esc(be)}"]:::beNode
+    DB[("🗄️ ${esc(db)}")]:::dbNode`;
+
+      if (an) def += `\n    AN["📊 ${esc(an)}"]:::anNode`;
+
+      def += `\n    User -->|"HTTPS Request"| CDN
+    CDN -->|"Routes"| FE
+    FE -->|"API Calls"| BE
+    BE -->|"Queries"| DB`;
+
+      if (an) def += `\n    FE -.->|"Tracks"| AN\n    BE -.->|"Events"| AN`;
+
+      def += `\n    DB -->|"Data"| BE
+    BE -->|"JSON / HTML"| FE
+    FE -->|"Rendered Page"| User
+
+    classDef userNode fill:#1a3a5c,stroke:#00d2ff,color:#00d2ff,rx:20
+    classDef cdnNode  fill:#1a2a1a,stroke:#40dd88,color:#40dd88
+    classDef feNode   fill:#1a1a3a,stroke:#00d2ff,color:#00d2ff
+    classDef beNode   fill:#2d1b69,stroke:#a070ff,color:#c0a0ff
+    classDef dbNode   fill:#3a2000,stroke:#ffaa44,color:#ffaa44
+    classDef anNode   fill:#3a0030,stroke:#ff70c0,color:#ff70c0`;
+
+      const el = document.getElementById('mermaidChart');
+      el.removeAttribute('data-processed');
+      el.textContent = def;
+
+      try {
+        const { svg } = await mermaid.render('mermaid-svg-' + Date.now(), def);
+        el.innerHTML = svg;
+        visualDiagram.style.display = 'block';
+      } catch (e) {
+        console.warn('Mermaid render error:', e);
+      }
+    }
+
+    function downloadDiagram() {
+      const svg = document.querySelector('#mermaidChart svg');
+      if (!svg) return;
+      const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'tech-stack-diagram.svg';
+      a.click();
     }
 
     function renderDiagram(data) {
@@ -417,7 +622,10 @@
           body: JSON.stringify({ analysisText }),
         });
         const data = await res.json();
-        if (data && !data.error) renderDiagram(data);
+        if (data && !data.error) {
+          renderDiagram(data);
+          renderVisualDiagram(data);
+        }
       } catch (e) {}
     }
 
@@ -436,14 +644,33 @@
       const url = input.value.trim();
       if (!url) { input.focus(); return; }
 
+      const domain = getDomain(url);
+
+      // Reset UI
       errorBox.style.display = 'none';
       result.style.display = 'none';
       result.innerHTML = '';
       diagram.style.display = 'none';
       flowSection.style.display = 'none';
+      visualDiagram.style.display = 'none';
+      document.getElementById('mermaidChart').innerHTML = '';
+      progressWrap.style.display = 'none';
+      clearInterval(progressTimer);
+
+      // Show server banner
+      serverName.textContent = domain;
+      serverUrl.textContent = url;
+      serverStatus.textContent = 'Analyzing...';
+      serverStatus.style.background = 'rgba(255,170,50,0.12)';
+      serverStatus.style.borderColor = 'rgba(255,170,50,0.3)';
+      serverStatus.style.color = '#ffaa44';
+      serverBanner.style.display = 'flex';
+
       status.style.display = 'flex';
       statusText.textContent = 'Fetching website and analyzing with AI...';
       btn.disabled = true;
+
+      startProgress();
 
       let rawText = '';
 
@@ -469,16 +696,26 @@
               errorBox.textContent = '❌ ' + data.error;
               errorBox.style.display = 'block';
               result.style.display = 'none';
+              serverStatus.textContent = 'Failed';
+              serverStatus.style.background = 'rgba(255,60,60,0.12)';
+              serverStatus.style.borderColor = 'rgba(255,60,60,0.3)';
+              serverStatus.style.color = '#ff9090';
+              finishProgress();
               break;
             }
             if (data.text) {
               rawText += data.text;
-              statusText.textContent = 'AI is analyzing...';
+              statusText.textContent = 'AI is analyzing ' + domain + '...';
               result.innerHTML = renderMarkdown(rawText) + '<span class="cursor"></span>';
             }
             if (data.done) {
               result.innerHTML = renderMarkdown(rawText);
               status.style.display = 'none';
+              serverStatus.textContent = 'Done ✓';
+              serverStatus.style.background = 'rgba(50,220,120,0.12)';
+              serverStatus.style.borderColor = 'rgba(50,220,120,0.3)';
+              serverStatus.style.color = '#40dd88';
+              finishProgress();
               // Fetch diagram and flow in parallel
               fetchDiagram(rawText);
               fetchFlow(rawText, url);
@@ -490,6 +727,11 @@
         errorBox.style.display = 'block';
         result.style.display = 'none';
         status.style.display = 'none';
+        serverStatus.textContent = 'Error';
+        serverStatus.style.background = 'rgba(255,60,60,0.12)';
+        serverStatus.style.borderColor = 'rgba(255,60,60,0.3)';
+        serverStatus.style.color = '#ff9090';
+        finishProgress();
       }
       btn.disabled = false;
     }
