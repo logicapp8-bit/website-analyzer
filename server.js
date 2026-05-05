@@ -52,8 +52,15 @@ app.post("/analyze", async (req, res) => {
     }
 
     const html = await fetchResponse.text();
-    const truncatedHtml = html.slice(0, 6000);
-    const headers = Object.fromEntries(fetchResponse.headers.entries());
+    const truncatedHtml = html.slice(0, 3000);
+    const allHeaders = Object.fromEntries(fetchResponse.headers.entries());
+    const headers = Object.fromEntries(
+      Object.entries(allHeaders).filter(([k]) =>
+        ["server","x-powered-by","set-cookie","content-type","via","x-generator",
+         "cache-control","strict-transport-security","x-framework","x-drupal-cache",
+         "x-wordpress","cf-cache-status","x-vercel","x-amz","x-cache"].some(h => k.toLowerCase().includes(h))
+      )
+    );
 
     // Try fetching common backend config files in parallel
     const configPaths = [
@@ -97,7 +104,7 @@ app.post("/analyze", async (req, res) => {
 URL: ${url}
 HTTP Headers: ${JSON.stringify(headers, null, 2)}
 
-HTML Source (first 6000 chars):
+HTML Source (first 3000 chars):
 ${truncatedHtml}
 
 ${configFiles ? `Backend Config Files Found:\n${configFiles}` : "No public config files found."}
