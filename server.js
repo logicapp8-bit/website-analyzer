@@ -66,7 +66,10 @@ app.post("/analyze", async (req, res) => {
       html = await fetchResponse.text();
     }
 
-    const truncatedHtml = html.slice(0, 4000);
+    // Take start + end of HTML — script tags are usually at bottom
+    const truncatedHtml = html.length > 5000
+      ? html.slice(0, 2500) + "\n...\n" + html.slice(-2500)
+      : html;
     const allHeaders = Object.fromEntries(fetchResponse.headers.entries());
     const headers = Object.fromEntries(
       Object.entries(allHeaders).filter(([k]) =>
