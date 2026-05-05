@@ -99,30 +99,33 @@ app.post("/analyze", async (req, res) => {
 
     console.log("Config files found:", configResults.filter(r => r.status === "fulfilled" && r.value).map(r => r.value.path));
 
-    const prompt = `Analyze this website's tech stack. For each item write: **Name** — one line reason.
+    const prompt = `You are a website tech stack detector. Analyze the data below and write each detected technology in bold followed by a one-line reason.
 
 URL: ${url}
 Headers: ${JSON.stringify(headers)}
 HTML: ${truncatedHtml}
 ${configFiles ? `Config files:\n${configFiles}` : ""}
 
+Respond with these sections:
+
 ## 🎨 Frontend
-List JS frameworks, CSS frameworks, UI libraries, fonts, build tools.
+**TechName** — reason
 
 ## 🏗️ Architecture
-Rendering method (SSR/CSR/SSG), state management, lazy loading.
+**TechName** — reason
 
 ## ⚙️ Backend & Server
-Server software, language/framework, CDN, caching.
+**TechName** — reason
 
 ## 🗄️ Database
-Check config files for: mongoose=MongoDB, pg=PostgreSQL, mysql2=MySQL, redis=Redis, psycopg2=PostgreSQL, pymongo=MongoDB. WordPress=MySQL, Laravel=MySQL(inferred), Django=PostgreSQL(inferred), Rails=PostgreSQL(inferred). If unknown write **Unknown**.
+**TechName** — reason
+(Rules: mongoose=MongoDB, pg=PostgreSQL, mysql2=MySQL, ASP.NET/IIS=SQL Server, WordPress=MySQL, Laravel=MySQL, Django=PostgreSQL, Rails=PostgreSQL, Firebase=Firestore. If no evidence write **Unknown**.)
 
 ## 🔧 Security
-HTTPS, CSP, HSTS, cookies, compression.
+**TechName** — reason
 
 ## 🌐 Infrastructure
-Cloud provider, CDN, analytics, monitoring.`;
+**TechName** — reason`;
 
     const groq = new Groq({ apiKey });
     const stream = await groq.chat.completions.create({
@@ -172,7 +175,10 @@ Return ONLY a valid JSON object in this exact format (no other text, no markdown
 Rules:
 - frontend: JS frameworks, CSS frameworks, UI libraries, build tools
 - backend: server software, backend language/framework
-- database: database names only (MySQL, PostgreSQL, MongoDB, Redis, etc.) — use "Unknown" if not detected
+- database: detect from analysis text. If "Unknown" in analysis, use stack inference:
+  ASP.NET/IIS = "SQL Server", Laravel/PHP = "MySQL", Django/Python = "PostgreSQL",
+  Rails/Ruby = "PostgreSQL", WordPress = "MySQL", Firebase = "Firestore",
+  Supabase = "PostgreSQL", Plesk+PHP = "MySQL". Use "Unknown" only if no stack clue.
 - infrastructure: cloud provider, CDN, hosting
 - analytics: analytics/tracking tools
 - Max 5 items per array, short names only (e.g. "React" not "React.js library")
