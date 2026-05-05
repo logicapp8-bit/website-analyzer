@@ -42,7 +42,12 @@ app.post("/analyze", async (req, res) => {
 
   try {
     const fetchResponse = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; WebAnalyzer/1.0)" },
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Cache-Control": "no-cache",
+      },
       signal: AbortSignal.timeout(20000),
     });
 
@@ -86,7 +91,12 @@ app.post("/analyze", async (req, res) => {
     const configResults = await Promise.allSettled(
       configPaths.map(p =>
         fetch(baseUrl + p, {
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; WebAnalyzer/1.0)" },
+          headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Cache-Control": "no-cache",
+      },
           signal: AbortSignal.timeout(4000),
         }).then(r => r.ok ? r.text().then(t => ({ path: p, content: t.slice(0, 800) })) : null)
         .catch(() => null)
