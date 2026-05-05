@@ -52,7 +52,7 @@ app.post("/analyze", async (req, res) => {
     }
 
     const html = await fetchResponse.text();
-    const truncatedHtml = html.slice(0, 3000);
+    const truncatedHtml = html.slice(0, 2000);
     const allHeaders = Object.fromEntries(fetchResponse.headers.entries());
     const headers = Object.fromEntries(
       Object.entries(allHeaders).filter(([k]) =>
@@ -94,7 +94,7 @@ app.post("/analyze", async (req, res) => {
     );
     const configFiles = configResults
       .filter(r => r.status === "fulfilled" && r.value)
-      .map(r => `--- ${r.value.path} ---\n${r.value.content}`)
+      .map(r => `--- ${r.value.path} ---\n${r.value.content.slice(0, 300)}`)
       .join("\n\n");
 
     console.log("Config files found:", configResults.filter(r => r.status === "fulfilled" && r.value).map(r => r.value.path));
@@ -104,7 +104,7 @@ app.post("/analyze", async (req, res) => {
 URL: ${url}
 HTTP Headers: ${JSON.stringify(headers, null, 2)}
 
-HTML Source (first 3000 chars):
+HTML Source (first 2000 chars):
 ${truncatedHtml}
 
 ${configFiles ? `Backend Config Files Found:\n${configFiles}` : "No public config files found."}
@@ -229,7 +229,7 @@ Be specific and cite evidence. Always start each bullet with the technology NAME
 
     const groq = new Groq({ apiKey });
     const stream = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "gemma2-9b-it",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 1200,
       stream: true,
