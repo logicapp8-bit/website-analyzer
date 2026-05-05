@@ -164,9 +164,10 @@ Respond with these sections:
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (err) {
-    const msg = err.name === "TimeoutError"
-      ? "Website took too long to respond. Please try again or try a different URL."
-      : err.message;
+    let msg = err.message;
+    if (err.name === "TimeoutError") msg = "Website took too long to respond. Please try again.";
+    else if (msg === "fetch failed" || msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND"))
+      msg = "Cannot reach this website from our server. It may be blocking cloud/datacenter requests (common with Flipkart, Amazon, banking sites). Try a different URL.";
     res.write(`data: ${JSON.stringify({ error: msg })}\n\n`);
     res.end();
   }
