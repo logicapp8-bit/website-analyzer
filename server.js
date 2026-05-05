@@ -43,7 +43,7 @@ app.post("/analyze", async (req, res) => {
   try {
     const fetchResponse = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; WebAnalyzer/1.0)" },
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(20000),
     });
 
     if (!fetchResponse.ok) {
@@ -146,7 +146,7 @@ Respond with these sections:
     res.end();
   } catch (err) {
     const msg = err.name === "TimeoutError"
-      ? "Website took too long to respond (10s timeout)"
+      ? "Website took too long to respond. Please try again or try a different URL."
       : err.message;
     res.write(`data: ${JSON.stringify({ error: msg })}\n\n`);
     res.end();
