@@ -257,6 +257,49 @@
     }
     .vd-btn:hover { background: rgba(123,47,247,0.2); color: #fff; border-color: rgba(123,47,247,0.4); }
 
+    /* ── Score Card ── */
+    #scoreCard { display: none; margin-bottom: 24px; }
+    .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    @media (max-width: 560px) { .score-grid { grid-template-columns: 1fr; } }
+    .score-item {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 16px 18px;
+    }
+    .score-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .score-label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+    .score-num { font-size: 1.3rem; font-weight: 800; }
+    .score-track { height: 6px; background: rgba(255,255,255,0.07); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+    .score-bar { height: 100%; width: 0%; border-radius: 6px; transition: width 1.2s cubic-bezier(.22,1,.36,1); }
+    .score-reason { font-size: 0.75rem; color: #777; }
+    .score-item.perf .score-label, .score-item.perf .score-num { color: #00d2ff; }
+    .score-item.perf .score-bar { background: linear-gradient(90deg,#0070a8,#00d2ff); }
+    .score-item.sec  .score-label, .score-item.sec  .score-num { color: #40dd88; }
+    .score-item.sec  .score-bar { background: linear-gradient(90deg,#1a6640,#40dd88); }
+    .score-item.mod  .score-label, .score-item.mod  .score-num { color: #a070ff; }
+    .score-item.mod  .score-bar { background: linear-gradient(90deg,#4a1a90,#a070ff); }
+    .score-item.sca  .score-label, .score-item.sca  .score-num { color: #ffaa44; }
+    .score-item.sca  .score-bar { background: linear-gradient(90deg,#7a4400,#ffaa44); }
+    .grade-wrap {
+      display: flex; align-items: center; justify-content: center; gap: 20px;
+      padding: 16px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
+    }
+    .grade-badge {
+      width: 68px; height: 68px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.7rem; font-weight: 900; border: 3px solid;
+    }
+    .grade-Ap { background:rgba(0,210,255,0.15);  border-color:#00d2ff; color:#00d2ff; }
+    .grade-A  { background:rgba(64,221,136,0.15); border-color:#40dd88; color:#40dd88; }
+    .grade-Bp { background:rgba(160,112,255,0.15);border-color:#a070ff; color:#a070ff; }
+    .grade-B  { background:rgba(160,112,255,0.12);border-color:#a070ff; color:#a070ff; }
+    .grade-Cp { background:rgba(255,170,68,0.15); border-color:#ffaa44; color:#ffaa44; }
+    .grade-C  { background:rgba(255,170,68,0.12); border-color:#ffaa44; color:#ffaa44; }
+    .grade-D  { background:rgba(255,90,90,0.15);  border-color:#ff6060; color:#ff6060; }
+    .grade-info { text-align: left; }
+    .grade-title { font-size: 1rem; font-weight: 700; color: #e0e0e0; margin-bottom: 4px; }
+    .grade-sub { font-size: 0.78rem; color: #777; }
+
     footer { text-align: center; padding: 30px 0 10px; color: #444; font-size: 0.8rem; }
   </style>
 </head>
@@ -348,6 +391,52 @@
       </div>
     </div>
 
+    <!-- Score Card -->
+    <div id="scoreCard">
+      <div class="section-title">📊 Tech Score Card</div>
+      <div class="score-grid">
+        <div class="score-item perf">
+          <div class="score-header">
+            <span class="score-label">⚡ Performance</span>
+            <span class="score-num" id="perfNum">—</span>
+          </div>
+          <div class="score-track"><div class="score-bar" id="perfBar"></div></div>
+          <div class="score-reason" id="perfReason"></div>
+        </div>
+        <div class="score-item sec">
+          <div class="score-header">
+            <span class="score-label">🔒 Security</span>
+            <span class="score-num" id="secNum">—</span>
+          </div>
+          <div class="score-track"><div class="score-bar" id="secBar"></div></div>
+          <div class="score-reason" id="secReason"></div>
+        </div>
+        <div class="score-item mod">
+          <div class="score-header">
+            <span class="score-label">🚀 Modernity</span>
+            <span class="score-num" id="modNum">—</span>
+          </div>
+          <div class="score-track"><div class="score-bar" id="modBar"></div></div>
+          <div class="score-reason" id="modReason"></div>
+        </div>
+        <div class="score-item sca">
+          <div class="score-header">
+            <span class="score-label">📈 Scalability</span>
+            <span class="score-num" id="scaNum">—</span>
+          </div>
+          <div class="score-track"><div class="score-bar" id="scaBar"></div></div>
+          <div class="score-reason" id="scaReason"></div>
+        </div>
+      </div>
+      <div class="grade-wrap">
+        <div class="grade-badge" id="gradeBadge">—</div>
+        <div class="grade-info">
+          <div class="grade-title" id="gradeTitle">Overall Grade</div>
+          <div class="grade-sub" id="gradeSub">Avg score: —/10</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Flow Diagrams -->
     <div id="flowSection">
       <div class="section-title">🔄 Website Flow</div>
@@ -404,6 +493,7 @@
     const diagram = document.getElementById('diagram');
     const flowSection = document.getElementById('flowSection');
     const visualDiagram = document.getElementById('visualDiagram');
+    const scoreCard = document.getElementById('scoreCard');
     const serverBanner = document.getElementById('serverBanner');
     const serverName = document.getElementById('serverName');
     const serverUrl = document.getElementById('serverUrl');
@@ -459,6 +549,44 @@
         .replace(/\n\n/g, '</p><p>')
         .replace(/^(?!<[hup])(.+)$/gm, '<p>$1</p>')
         .replace(/<p><\/p>/g, '');
+    }
+
+    function renderScorecard(data) {
+      const cats = [
+        { key:'performance', barId:'perfBar', numId:'perfNum', reasonId:'perfReason' },
+        { key:'security',    barId:'secBar',  numId:'secNum',  reasonId:'secReason'  },
+        { key:'modernity',   barId:'modBar',  numId:'modNum',  reasonId:'modReason'  },
+        { key:'scalability', barId:'scaBar',  numId:'scaNum',  reasonId:'scaReason'  },
+      ];
+      cats.forEach(({ key, barId, numId, reasonId }) => {
+        const d = data[key] || {};
+        const score = Number(d.score) || 5;
+        document.getElementById(numId).textContent = score + '/10';
+        document.getElementById(reasonId).textContent = d.reason || '';
+        setTimeout(() => { document.getElementById(barId).style.width = (score * 10) + '%'; }, 120);
+      });
+
+      const grade = data.grade || 'B';
+      const avg   = data.avg   || 5;
+      const badge = document.getElementById('gradeBadge');
+      badge.textContent = grade;
+      badge.className = 'grade-badge grade-' + grade.replace('+','p');
+
+      const labels = {'A+':'Outstanding','A':'Excellent','B+':'Very Good','B':'Good','C+':'Average','C':'Below Average','D':'Needs Work'};
+      document.getElementById('gradeTitle').textContent = labels[grade] || 'Overall Grade';
+      document.getElementById('gradeSub').textContent = 'Avg score: ' + avg + '/10';
+      scoreCard.style.display = 'block';
+    }
+
+    async function fetchScorecard(analysisText) {
+      try {
+        const res = await fetch('/scorecard', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ analysisText }),
+        });
+        const data = await res.json();
+        if (data && !data.error) renderScorecard(data);
+      } catch(e) {}
     }
 
     async function renderVisualDiagram(data) {
@@ -653,6 +781,7 @@
       diagram.style.display = 'none';
       flowSection.style.display = 'none';
       visualDiagram.style.display = 'none';
+      scoreCard.style.display = 'none';
       document.getElementById('mermaidChart').innerHTML = '';
       progressWrap.style.display = 'none';
       clearInterval(progressTimer);
@@ -719,6 +848,7 @@
               // Fetch diagram and flow in parallel
               fetchDiagram(rawText);
               fetchFlow(rawText, url);
+              setTimeout(() => fetchScorecard(rawText), 1500);
             }
           }
         }

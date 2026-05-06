@@ -332,6 +332,56 @@ Rules:
   }
 });
 
+app.post("/scorecard", async (req, res) => {
+  const { analysisText } = req.body;
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey || !analysisText) return res.status(400).json({ error: "Missing data" });
+
+  try {
+    const groq = new Groq({ apiKey });
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [{
+        role: "user",
+        content: `Score this website's tech stack 0-10 in 4 categories.
+
+Analysis: ${analysisText.slice(0, 1500)}
+
+Return ONLY valid JSON, no markdown:
+{"performance":{"score":7,"reason":"short reason"},"security":{"score":5,"reason":"short reason"},"modernity":{"score":8,"reason":"short reason"},"scalability":{"score":6,"reason":"short reason"}}
+
+- performance: CDN, caching, minification, HTTP/2
+- security: HTTPS, HSTS, CSP, X-Frame-Options
+- modernity: modern vs legacy tech (jQuery/PHP=low, Next.js/Go=high)
+- scalability: cloud hosting, load balancing, microservices
+- reason: max 6 words each
+Return only JSON.`
+      }],
+      max_tokens: 220,
+    });
+
+    const text = completion.choices[0]?.message?.content?.trim() || "{}";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    let data = {};
+    try { data = jsonMatch ? JSON.parse(jsonMatch[0]) : {}; } catch(e) { data = {}; }
+
+    // Normalize: handle flat {performance:8} or nested {performance:{score:8}}
+    ["performance","security","modernity","scalability"].forEach(k => {
+      if (typeof data[k] === "number") data[k] = { score: data[k], reason: "" };
+      if (!data[k] || typeof data[k] !== "object") data[k] = { score: 5, reason: "" };
+    });
+
+    const scores = ["performance","security","modernity","scalability"].map(k => Number(data[k].score) || 5);
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    data.grade = avg >= 9 ? "A+" : avg >= 8 ? "A" : avg >= 7 ? "B+" : avg >= 6 ? "B" : avg >= 5 ? "C+" : avg >= 4 ? "C" : "D";
+    data.avg = Math.round(avg * 10) / 10;
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3500;
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
