@@ -121,43 +121,45 @@ app.post("/analyze", async (req, res) => {
 
     console.log("Config files found:", configResults.filter(r => r.status === "fulfilled" && r.value).map(r => r.value.path));
 
-    const prompt = `You are a website technology detector. Analyze the data below and list ONLY the technologies that are ACTUALLY DETECTED. Do NOT mention anything that is absent, not found, or not in use.
+    const prompt = `You are a senior web architect analyzing a website's technology stack. Based on the data below, write a clear and informative analysis. Only describe technologies that are ACTUALLY DETECTED — skip anything not found.
 
 URL: ${url}
 ${blockedNote ? blockedNote + "\n" : ""}HTTP Headers: ${JSON.stringify(headers)}
 HTML Source: ${truncatedHtml}
 ${configFiles ? `Config Files:\n${configFiles}` : ""}
 
-STRICT RULES:
-- Only list technologies you have DIRECT EVIDENCE for in the data above
-- NEVER write "X is not used", "X is not evident", "X is not found" — skip it entirely
-- NEVER list a technology just to say it's absent
-- Each detected item: **TechName** — one short line of evidence (what you saw)
-- If nothing detected in a section, skip that section entirely
+FORMAT for each detected technology:
+**TechName** — What it is + why this site uses it + what it means for performance/UX (2-3 sentences)
+
+RULES:
+- Only include technologies with direct evidence in the data
+- Never say "X is not used" or "X is not found" — just skip it
+- Write in clear English, explain what each technology does for this specific site
+- Skip any section where nothing is detected
 
 ## 🎨 Frontend Technologies
-Only list if found: framework/library script tags (react, vue, angular, svelte, jquery), CSS framework classes (tw- = Tailwind, bootstrap), font/icon links, bundler hints (webpack, vite).
+Detected frameworks, UI libraries, CSS systems, fonts, icons. Explain what role each plays in building the UI.
 
 ## 🏗️ Frontend Architecture
-Only list if found: rendering method (SSR/CSR/SSG), state management, lazy loading, PWA.
+How the site renders pages (SSR/CSR/SSG), how state is managed, any performance optimizations like lazy loading or PWA.
 
 ## ⚙️ Backend & Server
-Only list if found: Server header value, X-Powered-By header value, framework clues in headers.
+Web server software, backend language/framework, how requests are handled.
 
 ## 🗄️ Database
-Only list if directly found in config files OR strongly inferred from stack (ASP.NET→SQL Server, WordPress→MySQL, Django→PostgreSQL, Rails→PostgreSQL, Laravel→MySQL). Skip if no evidence.
+Database system in use and why it suits this application's data needs.
 
 ## 🔧 Security
-Only list security features that ARE present (HTTPS confirmed, HSTS header found, CSP header found, etc.).
+Security measures in place — HTTPS, headers, cookie policies and what they protect against.
 
 ## 🌐 Infrastructure
-Only list if found: CDN provider, cloud host, analytics scripts (gtag, fbq, hotjar, etc.).`;
+Hosting provider, CDN, analytics tools and what they contribute to the site's delivery and tracking.`;
 
     const groq = new Groq({ apiKey });
     const stream = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 1200,
+      max_tokens: 1500,
       stream: true,
     });
 
