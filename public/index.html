@@ -54,6 +54,75 @@
     }
     .example-btn:hover { background: rgba(123,47,247,0.2); color: #fff; }
 
+    /* ── Full Screen Loader ── */
+    #fullLoader {
+      display: none; position: fixed; inset: 0; z-index: 999;
+      background: rgba(10, 8, 30, 0.92);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+    }
+    .fl-ring {
+      position: relative; width: 100px; height: 100px;
+    }
+    .fl-ring svg { width: 100px; height: 100px; animation: fl-rotate 2s linear infinite; }
+    .fl-ring svg circle {
+      fill: none; stroke-width: 3; stroke-linecap: round;
+      stroke-dasharray: 200; stroke-dashoffset: 150;
+      stroke: url(#loaderGrad);
+      animation: fl-dash 1.8s ease-in-out infinite;
+    }
+    @keyframes fl-rotate { to { transform: rotate(360deg); } }
+    @keyframes fl-dash {
+      0%   { stroke-dashoffset: 200; }
+      50%  { stroke-dashoffset: 50; }
+      100% { stroke-dashoffset: 200; }
+    }
+    .fl-icon {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+    }
+    .fl-domain {
+      font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #00d2ff, #7b2ff7);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; text-align: center; max-width: 80vw;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .fl-status {
+      font-size: 0.9rem; color: #9a9ab0; letter-spacing: 0.5px;
+      min-height: 1.2em; text-align: center;
+    }
+    .fl-bar-wrap {
+      width: min(420px, 80vw);
+    }
+    .fl-bar-track {
+      height: 4px; background: rgba(255,255,255,0.07); border-radius: 4px; overflow: hidden;
+    }
+    .fl-bar-fill {
+      height: 100%; width: 0%; border-radius: 4px;
+      background: linear-gradient(90deg, #7b2ff7, #00d2ff);
+      transition: width 0.6s ease-out;
+    }
+    .fl-pct {
+      text-align: right; font-size: 0.72rem; color: #555; margin-top: 5px;
+    }
+    .fl-steps {
+      display: flex; gap: 24px; align-items: center;
+    }
+    .fl-step {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      font-size: 0.7rem; color: #444; text-transform: uppercase; letter-spacing: 1px;
+      transition: color 0.3s;
+    }
+    .fl-step.active { color: #00d2ff; }
+    .fl-step.done   { color: #40dd88; }
+    .fl-step-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #333; border: 2px solid #444; transition: all 0.3s;
+    }
+    .fl-step.active .fl-step-dot { background: #00d2ff; border-color: #00d2ff; box-shadow: 0 0 8px #00d2ff88; }
+    .fl-step.done   .fl-step-dot { background: #40dd88; border-color: #40dd88; }
+
     /* ── Server Banner ── */
     #serverBanner {
       display: none; align-items: center; gap: 14px; padding: 14px 20px;
@@ -304,6 +373,34 @@
   </style>
 </head>
 <body>
+  <!-- Full Screen Loader -->
+  <div id="fullLoader">
+    <svg style="position:absolute;width:0;height:0">
+      <defs>
+        <linearGradient id="loaderGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#7b2ff7"/>
+          <stop offset="100%" style="stop-color:#00d2ff"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="fl-ring">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44"/></svg>
+      <div class="fl-icon">🔍</div>
+    </div>
+    <div class="fl-domain" id="flDomain">Analyzing...</div>
+    <div class="fl-steps">
+      <div class="fl-step" id="step1"><div class="fl-step-dot"></div>Fetching</div>
+      <div class="fl-step" id="step2"><div class="fl-step-dot"></div>Reading</div>
+      <div class="fl-step" id="step3"><div class="fl-step-dot"></div>AI Analysis</div>
+      <div class="fl-step" id="step4"><div class="fl-step-dot"></div>Done</div>
+    </div>
+    <div class="fl-bar-wrap">
+      <div class="fl-bar-track"><div class="fl-bar-fill" id="flBarFill"></div></div>
+      <div class="fl-pct" id="flPct">0%</div>
+    </div>
+    <div class="fl-status" id="flStatus">Connecting to website...</div>
+  </div>
+
   <div class="container">
     <header>
       <h1>🔍 Website Tech Analyzer</h1>
@@ -498,28 +595,40 @@
     const serverName = document.getElementById('serverName');
     const serverUrl = document.getElementById('serverUrl');
     const serverStatus = document.getElementById('serverStatus');
-    const progressWrap = document.getElementById('progressWrap');
-    const progressFill = document.getElementById('progressFill');
-    const progressLabel = document.getElementById('progressLabel');
+    const fullLoader  = document.getElementById('fullLoader');
+    const flDomain    = document.getElementById('flDomain');
+    const flStatus    = document.getElementById('flStatus');
+    const flBarFill   = document.getElementById('flBarFill');
+    const flPct       = document.getElementById('flPct');
+    const flSteps     = [null, document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3'), document.getElementById('step4')];
 
     let progressTimer = null;
+    let flCurrent = 0;
 
-    function setProgress(pct) {
-      progressFill.style.width = pct + '%';
-      progressLabel.textContent = Math.round(pct) + '%';
+    function flSetProgress(pct) {
+      flCurrent = pct;
+      flBarFill.style.width = pct + '%';
+      flPct.textContent = Math.round(pct) + '%';
+      // Update step indicators
+      const stepAt = pct < 20 ? 1 : pct < 50 ? 2 : pct < 90 ? 3 : 4;
+      for (let i = 1; i <= 4; i++) {
+        flSteps[i].className = 'fl-step' + (i < stepAt ? ' done' : i === stepAt ? ' active' : '');
+      }
     }
 
-    function startProgress() {
-      progressWrap.style.display = 'block';
-      setProgress(0);
-      setTimeout(() => setProgress(8), 100);
-      // Slowly creep toward 88% over ~20s
+    function startProgress(domain) {
+      flDomain.textContent = domain;
+      flStatus.textContent = 'Connecting to website...';
+      fullLoader.style.display = 'flex';
+      flSetProgress(0);
+      setTimeout(() => { flSetProgress(8); flStatus.textContent = 'Fetching website content...'; }, 300);
+      setTimeout(() => { flStatus.textContent = 'Reading HTML & headers...'; }, 2000);
+      setTimeout(() => { flStatus.textContent = 'AI is analyzing tech stack...'; }, 4000);
       let current = 8;
       progressTimer = setInterval(() => {
         if (current < 88) {
-          const step = (88 - current) * 0.04;
-          current += Math.max(step, 0.3);
-          setProgress(current);
+          current += Math.max((88 - current) * 0.04, 0.3);
+          flSetProgress(current);
         }
       }, 400);
     }
@@ -527,11 +636,18 @@
     function finishProgress() {
       return new Promise(resolve => {
         clearInterval(progressTimer);
-        setProgress(100);
+        flStatus.textContent = 'Analysis complete!';
+        flSetProgress(100);
         setTimeout(() => {
-          progressWrap.style.display = 'none';
-          resolve();
-        }, 700);
+          fullLoader.style.opacity = '0';
+          fullLoader.style.transition = 'opacity 0.4s ease';
+          setTimeout(() => {
+            fullLoader.style.display = 'none';
+            fullLoader.style.opacity = '';
+            fullLoader.style.transition = '';
+            resolve();
+          }, 400);
+        }, 500);
       });
     }
 
@@ -787,24 +903,12 @@
       flowSection.style.display = 'none';
       visualDiagram.style.display = 'none';
       scoreCard.style.display = 'none';
+      serverBanner.style.display = 'none';
       document.getElementById('mermaidChart').innerHTML = '';
-      progressWrap.style.display = 'none';
       clearInterval(progressTimer);
 
-      // Show server banner
-      serverName.textContent = domain;
-      serverUrl.textContent = url;
-      serverStatus.textContent = 'Analyzing...';
-      serverStatus.style.background = 'rgba(255,170,50,0.12)';
-      serverStatus.style.borderColor = 'rgba(255,170,50,0.3)';
-      serverStatus.style.color = '#ffaa44';
-      serverBanner.style.display = 'flex';
-
-      status.style.display = 'flex';
-      statusText.textContent = 'Fetching website and analyzing with AI...';
       btn.disabled = true;
-
-      startProgress();
+      startProgress(domain);
 
       let rawText = '';
 
@@ -828,26 +932,24 @@
               await finishProgress();
               errorBox.textContent = '❌ ' + data.error;
               errorBox.style.display = 'block';
-              serverStatus.textContent = 'Failed';
-              serverStatus.style.background = 'rgba(255,60,60,0.12)';
-              serverStatus.style.borderColor = 'rgba(255,60,60,0.3)';
-              serverStatus.style.color = '#ff9090';
-              status.style.display = 'none';
               break;
             }
             if (data.text) {
               rawText += data.text;
-              statusText.textContent = 'AI is analyzing ' + domain + '...';
+              flStatus.textContent = 'AI is analyzing ' + domain + '...';
             }
             if (data.done) {
+              // Wait for loader to fade out
+              await finishProgress();
+              // Show server banner
+              serverName.textContent = domain;
+              serverUrl.textContent = url;
               serverStatus.textContent = 'Done ✓';
               serverStatus.style.background = 'rgba(50,220,120,0.12)';
               serverStatus.style.borderColor = 'rgba(50,220,120,0.3)';
               serverStatus.style.color = '#40dd88';
-              status.style.display = 'none';
-              // Wait for progress bar to reach 100% and disappear
-              await finishProgress();
-              // Now reveal everything at once
+              serverBanner.style.display = 'flex';
+              // Reveal everything at once
               result.innerHTML = renderMarkdown(rawText);
               result.style.display = 'block';
               fetchDiagram(rawText);
@@ -860,11 +962,6 @@
         await finishProgress();
         errorBox.textContent = '❌ Connection error: ' + err.message;
         errorBox.style.display = 'block';
-        status.style.display = 'none';
-        serverStatus.textContent = 'Error';
-        serverStatus.style.background = 'rgba(255,60,60,0.12)';
-        serverStatus.style.borderColor = 'rgba(255,60,60,0.3)';
-        serverStatus.style.color = '#ff9090';
       }
       btn.disabled = false;
     }
