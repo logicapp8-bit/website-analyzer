@@ -121,33 +121,37 @@ app.post("/analyze", async (req, res) => {
 
     console.log("Config files found:", configResults.filter(r => r.status === "fulfilled" && r.value).map(r => r.value.path));
 
-    const prompt = `You are an expert website technology detector. Look for SPECIFIC technology names — not generic ones like "HTML" or "CSS" or "JavaScript". Find the actual frameworks, libraries and tools.
+    const prompt = `You are a website technology detector. Analyze the data below and list ONLY the technologies that are ACTUALLY DETECTED. Do NOT mention anything that is absent, not found, or not in use.
 
 URL: ${url}
 ${blockedNote ? blockedNote + "\n" : ""}HTTP Headers: ${JSON.stringify(headers)}
 HTML Source: ${truncatedHtml}
 ${configFiles ? `Config Files:\n${configFiles}` : ""}
 
-Detect SPECIFIC technologies (e.g. React not "JavaScript", Tailwind not "CSS", Next.js not "framework").
-Write each as: **TechName** — one-line evidence
+STRICT RULES:
+- Only list technologies you have DIRECT EVIDENCE for in the data above
+- NEVER write "X is not used", "X is not evident", "X is not found" — skip it entirely
+- NEVER list a technology just to say it's absent
+- Each detected item: **TechName** — one short line of evidence (what you saw)
+- If nothing detected in a section, skip that section entirely
 
 ## 🎨 Frontend Technologies
-Look for: script src names (react, vue, angular, svelte, jquery), CSS class patterns (tw- = Tailwind, bootstrap classes), link tags, meta generators, bundler hints (webpack chunks, vite, parcel), font/icon libraries.
+Only list if found: framework/library script tags (react, vue, angular, svelte, jquery), CSS framework classes (tw- = Tailwind, bootstrap), font/icon links, bundler hints (webpack, vite).
 
 ## 🏗️ Frontend Architecture
-Rendering: SSR (Next.js/Nuxt), CSR (React/Vue SPA), SSG (Gatsby/Hugo). State management, lazy loading, PWA manifest.
+Only list if found: rendering method (SSR/CSR/SSG), state management, lazy loading, PWA.
 
 ## ⚙️ Backend & Server
-From headers: Server (nginx/apache/IIS), X-Powered-By (PHP/Express/ASP.NET). CDN hints, response headers framework clues.
+Only list if found: Server header value, X-Powered-By header value, framework clues in headers.
 
 ## 🗄️ Database
-From config files: mongoose→MongoDB, pg→PostgreSQL, mysql2→MySQL. Stack inference: ASP.NET→SQL Server, WordPress→MySQL, Laravel→MySQL, Django→PostgreSQL, Rails→PostgreSQL. Write **Unknown** if no evidence.
+Only list if directly found in config files OR strongly inferred from stack (ASP.NET→SQL Server, WordPress→MySQL, Django→PostgreSQL, Rails→PostgreSQL, Laravel→MySQL). Skip if no evidence.
 
 ## 🔧 Security
-HTTPS, HSTS, CSP header, X-Frame-Options, cookie flags.
+Only list security features that ARE present (HTTPS confirmed, HSTS header found, CSP header found, etc.).
 
 ## 🌐 Infrastructure
-CDN (Cloudflare/Fastly/Akamai), cloud (AWS/GCP/Azure/Vercel/Netlify), analytics scripts (gtag=Google Analytics, fbq=Facebook Pixel, hotjar, mixpanel).`;
+Only list if found: CDN provider, cloud host, analytics scripts (gtag, fbq, hotjar, etc.).`;
 
     const groq = new Groq({ apiKey });
     const stream = await groq.chat.completions.create({
