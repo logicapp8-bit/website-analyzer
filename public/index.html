@@ -779,7 +779,7 @@
     BE -->|"JSON / HTML"| FE
     FE -->|"Rendered Page"| User
 
-    classDef userNode fill:#1a3a5c,stroke:#00d2ff,color:#00d2ff,rx:20
+    classDef userNode fill:#1a3a5c,stroke:#00d2ff,color:#00d2ff
     classDef cdnNode  fill:#1a2a1a,stroke:#40dd88,color:#40dd88
     classDef feNode   fill:#1a1a3a,stroke:#00d2ff,color:#00d2ff
     classDef beNode   fill:#2d1b69,stroke:#a070ff,color:#c0a0ff
@@ -1010,12 +1010,12 @@
               serverStatus.style.borderColor = 'rgba(50,220,120,0.3)';
               serverStatus.style.color = '#40dd88';
               finishProgress();
-              // Fetch all sections in parallel
-              fetchDiagram(rawText);
-              fetchFlow(rawText, url);
-              fetchScorecard(rawText);
-              fetchRoast(rawText);
-              fetchRebuild(rawText);
+              // Stagger API calls to avoid Groq rate limit (6000 TPM)
+              fetchDiagram(rawText);                                          // immediate
+              setTimeout(() => fetchFlow(rawText, url), 800);                // +0.8s
+              setTimeout(() => fetchScorecard(rawText), 1600);               // +1.6s
+              setTimeout(() => fetchRoast(rawText), 2400);                   // +2.4s
+              setTimeout(() => fetchRebuild(rawText), 3200);                 // +3.2s
             }
           }
         }
