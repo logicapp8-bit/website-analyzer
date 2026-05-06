@@ -241,6 +241,105 @@
     }
     @keyframes blink { 50% { opacity: 0; } }
 
+    /* ── Score Card ── */
+    #scoreCard { display: none; margin-bottom: 24px; }
+    .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+    @media (max-width: 560px) { .score-grid { grid-template-columns: 1fr; } }
+    .score-item {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 16px 18px;
+    }
+    .score-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .score-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+    .score-num { font-size: 1.3rem; font-weight: 800; }
+    .score-track { height: 6px; background: rgba(255,255,255,0.07); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+    .score-bar { height: 100%; width: 0%; border-radius: 6px; transition: width 1.2s cubic-bezier(.22,1,.36,1); }
+    .score-reason { font-size: 0.75rem; color: #777; }
+    .score-item.perf  .score-label { color: #00d2ff; }
+    .score-item.perf  .score-num   { color: #00d2ff; }
+    .score-item.perf  .score-bar   { background: linear-gradient(90deg,#0070a8,#00d2ff); }
+    .score-item.sec   .score-label { color: #40dd88; }
+    .score-item.sec   .score-num   { color: #40dd88; }
+    .score-item.sec   .score-bar   { background: linear-gradient(90deg,#1a6640,#40dd88); }
+    .score-item.mod   .score-label { color: #a070ff; }
+    .score-item.mod   .score-num   { color: #a070ff; }
+    .score-item.mod   .score-bar   { background: linear-gradient(90deg,#4a1a90,#a070ff); }
+    .score-item.sca   .score-label { color: #ffaa44; }
+    .score-item.sca   .score-num   { color: #ffaa44; }
+    .score-item.sca   .score-bar   { background: linear-gradient(90deg,#7a4400,#ffaa44); }
+    .grade-wrap { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; }
+    .grade-badge {
+      width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; font-weight: 900; border: 3px solid;
+    }
+    .grade-A\+ { background: rgba(0,210,255,0.15); border-color: #00d2ff; color: #00d2ff; }
+    .grade-A  { background: rgba(64,221,136,0.15); border-color: #40dd88; color: #40dd88; }
+    .grade-B\+{ background: rgba(160,112,255,0.15); border-color: #a070ff; color: #a070ff; }
+    .grade-B  { background: rgba(160,112,255,0.12); border-color: #a070ff; color: #a070ff; }
+    .grade-C\+{ background: rgba(255,170,68,0.15);  border-color: #ffaa44; color: #ffaa44; }
+    .grade-C  { background: rgba(255,170,68,0.12);  border-color: #ffaa44; color: #ffaa44; }
+    .grade-D  { background: rgba(255,90,90,0.15);   border-color: #ff6060; color: #ff6060; }
+    .grade-info { text-align: left; }
+    .grade-title { font-size: 1rem; font-weight: 700; color: #e0e0e0; margin-bottom: 4px; }
+    .grade-sub { font-size: 0.78rem; color: #777; }
+
+    /* ── Roast Mode ── */
+    #roastSection { display: none; margin-bottom: 24px; }
+    #roastToggle {
+      width: 100%; padding: 14px; border-radius: 12px; border: 1px solid rgba(255,100,0,0.3);
+      background: rgba(255,100,0,0.08); color: #ff9944; font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; transition: all 0.25s; letter-spacing: 0.5px;
+    }
+    #roastToggle:hover { background: rgba(255,100,0,0.15); border-color: rgba(255,100,0,0.5); transform: translateY(-1px); }
+    #roastBox {
+      display: none; margin-top: 12px; padding: 20px 22px;
+      background: linear-gradient(135deg, rgba(255,60,0,0.07), rgba(255,160,0,0.07));
+      border: 1px solid rgba(255,100,0,0.25); border-radius: 14px;
+      font-size: 1rem; line-height: 1.7; color: #ffcc88;
+      position: relative; overflow: hidden;
+    }
+    #roastBox::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, #ff4400, #ffaa00, #ff4400);
+      animation: fireAnim 2s linear infinite;
+    }
+    @keyframes fireAnim { 0%{background-position:0%} 100%{background-position:200%} }
+    .roast-emoji { font-size: 2rem; margin-bottom: 10px; display: block; }
+
+    /* ── Rebuild Plan ── */
+    #rebuildSection { display: none; margin-bottom: 24px; }
+    .rebuild-card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; overflow: hidden;
+    }
+    .rebuild-header {
+      padding: 16px 20px; background: rgba(123,47,247,0.1);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px; color: #9a9ab0;
+    }
+    .rebuild-grid { display: grid; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 560px) { .rebuild-grid { grid-template-columns: 1fr; } }
+    .rebuild-row {
+      display: flex; align-items: flex-start; gap: 12px; padding: 14px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .rebuild-row:last-child { border-bottom: none; }
+    .rebuild-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+    .rebuild-key { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: #666; margin-bottom: 3px; }
+    .rebuild-val { font-size: 0.9rem; color: #d0d0e8; font-weight: 500; }
+    .rebuild-meta { display: flex; gap: 14px; padding: 14px 20px; background: rgba(0,0,0,0.15); flex-wrap: wrap; }
+    .meta-pill {
+      padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600;
+    }
+    .meta-time { background: rgba(0,210,255,0.1); border: 1px solid rgba(0,210,255,0.25); color: #00d2ff; }
+    .meta-cost { background: rgba(64,221,136,0.1); border: 1px solid rgba(64,221,136,0.25); color: #40dd88; }
+    .rebuild-why { padding: 14px 20px; font-size: 0.85rem; color: #9a9ab0; line-height: 1.6; border-top: 1px solid rgba(255,255,255,0.04); }
+    .rebuild-improvements { padding: 0 20px 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .improve-tag {
+      padding: 4px 12px; border-radius: 20px; font-size: 0.78rem;
+      background: rgba(123,47,247,0.1); border: 1px solid rgba(123,47,247,0.25); color: #a070ff;
+    }
+
     /* ── Visual Flow Diagram ── */
     #visualDiagram { display: none; margin-bottom: 24px; }
     .vd-wrap {
@@ -306,6 +405,52 @@
 
     <div id="errorBox"></div>
 
+    <!-- Tech Score Card -->
+    <div id="scoreCard">
+      <div class="section-title">📊 Tech Score Card</div>
+      <div class="score-grid">
+        <div class="score-item perf">
+          <div class="score-header">
+            <span class="score-label">⚡ Performance</span>
+            <span class="score-num" id="perfNum">—</span>
+          </div>
+          <div class="score-track"><div class="score-bar" id="perfBar"></div></div>
+          <div class="score-reason" id="perfReason"></div>
+        </div>
+        <div class="score-item sec">
+          <div class="score-header">
+            <span class="score-label">🔒 Security</span>
+            <span class="score-num" id="secNum">—</span>
+          </div>
+          <div class="score-track"><div class="score-bar" id="secBar"></div></div>
+          <div class="score-reason" id="secReason"></div>
+        </div>
+        <div class="score-item mod">
+          <div class="score-header">
+            <span class="score-label">🚀 Modernity</span>
+            <span class="score-num" id="modNum">—</span>
+          </div>
+          <div class="score-track"><div class="score-bar" id="modBar"></div></div>
+          <div class="score-reason" id="modReason"></div>
+        </div>
+        <div class="score-item sca">
+          <div class="score-header">
+            <span class="score-label">📈 Scalability</span>
+            <span class="score-num" id="scaNum">—</span>
+          </div>
+          <div class="score-track"><div class="score-bar" id="scaBar"></div></div>
+          <div class="score-reason" id="scaReason"></div>
+        </div>
+      </div>
+      <div class="grade-wrap">
+        <div class="grade-badge" id="gradeBadge">—</div>
+        <div class="grade-info">
+          <div class="grade-title" id="gradeTitle">Overall Grade</div>
+          <div class="grade-sub" id="gradeSub">Average score: —/10</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Architecture Diagram -->
     <div id="diagram">
       <div class="section-title">⚡ Tech Stack Architecture</div>
@@ -345,6 +490,47 @@
       </div>
       <div class="vd-actions">
         <button class="vd-btn" onclick="downloadDiagram()">⬇️ Download SVG</button>
+      </div>
+    </div>
+
+    <!-- Roast Mode -->
+    <div id="roastSection">
+      <button id="roastToggle" onclick="toggleRoast()">🔥 AI Roast This Site — Click to Reveal</button>
+      <div id="roastBox">
+        <span class="roast-emoji" id="roastEmoji">🔥</span>
+        <span id="roastText"></span>
+      </div>
+    </div>
+
+    <!-- Rebuild Plan -->
+    <div id="rebuildSection">
+      <div class="section-title">🔧 Modern Rebuild Plan</div>
+      <div class="rebuild-card">
+        <div class="rebuild-header">If you were to rebuild this site today with best modern stack —</div>
+        <div class="rebuild-grid">
+          <div class="rebuild-row">
+            <div class="rebuild-icon">🎨</div>
+            <div><div class="rebuild-key">Frontend</div><div class="rebuild-val" id="rb-frontend">—</div></div>
+          </div>
+          <div class="rebuild-row">
+            <div class="rebuild-icon">⚙️</div>
+            <div><div class="rebuild-key">Backend</div><div class="rebuild-val" id="rb-backend">—</div></div>
+          </div>
+          <div class="rebuild-row">
+            <div class="rebuild-icon">🗄️</div>
+            <div><div class="rebuild-key">Database</div><div class="rebuild-val" id="rb-database">—</div></div>
+          </div>
+          <div class="rebuild-row">
+            <div class="rebuild-icon">🌐</div>
+            <div><div class="rebuild-key">Infra / Hosting</div><div class="rebuild-val" id="rb-infra">—</div></div>
+          </div>
+        </div>
+        <div class="rebuild-meta">
+          <span class="meta-pill meta-time">⏱️ <span id="rb-timeline">—</span></span>
+          <span class="meta-pill meta-cost">💰 <span id="rb-cost">—</span></span>
+        </div>
+        <div class="rebuild-why" id="rb-why"></div>
+        <div class="rebuild-improvements" id="rb-improvements"></div>
       </div>
     </div>
 
@@ -411,6 +597,9 @@
     const progressWrap = document.getElementById('progressWrap');
     const progressFill = document.getElementById('progressFill');
     const progressLabel = document.getElementById('progressLabel');
+    const scoreCard = document.getElementById('scoreCard');
+    const roastSection = document.getElementById('roastSection');
+    const rebuildSection = document.getElementById('rebuildSection');
 
     let progressTimer = null;
 
@@ -459,6 +648,106 @@
         .replace(/\n\n/g, '</p><p>')
         .replace(/^(?!<[hup])(.+)$/gm, '<p>$1</p>')
         .replace(/<p><\/p>/g, '');
+    }
+
+    // ── Score Card ──────────────────────────────────────────────
+    function renderScorecard(data) {
+      const cats = [
+        { key:'performance', barId:'perfBar', numId:'perfNum', reasonId:'perfReason' },
+        { key:'security',    barId:'secBar',  numId:'secNum',  reasonId:'secReason'  },
+        { key:'modernity',   barId:'modBar',  numId:'modNum',  reasonId:'modReason'  },
+        { key:'scalability', barId:'scaBar',  numId:'scaNum',  reasonId:'scaReason'  },
+      ];
+      cats.forEach(({ key, barId, numId, reasonId }) => {
+        const d = data[key] || {};
+        const score = d.score ?? 5;
+        document.getElementById(numId).textContent = score + '/10';
+        document.getElementById(reasonId).textContent = d.reason || '';
+        setTimeout(() => {
+          document.getElementById(barId).style.width = (score * 10) + '%';
+        }, 100);
+      });
+
+      const grade = data.grade || 'B';
+      const avg   = data.avg   || 5;
+      const badge = document.getElementById('gradeBadge');
+      badge.textContent = grade;
+      badge.className = 'grade-badge grade-' + grade.replace('+','\\+');
+
+      const labels = { 'A+':'Outstanding','A':'Excellent','B+':'Very Good','B':'Good','C+':'Average','C':'Below Average','D':'Needs Work' };
+      document.getElementById('gradeTitle').textContent = labels[grade] || 'Overall Grade';
+      document.getElementById('gradeSub').textContent = `Average score: ${avg}/10`;
+      scoreCard.style.display = 'block';
+    }
+
+    // ── Roast ────────────────────────────────────────────────────
+    let roastLoaded = false;
+    function toggleRoast() {
+      const box = document.getElementById('roastBox');
+      const open = box.style.display === 'block';
+      box.style.display = open ? 'none' : 'block';
+      document.getElementById('roastToggle').textContent = open
+        ? '🔥 AI Roast This Site — Click to Reveal'
+        : '🔥 Hide Roast';
+    }
+    function renderRoast(data) {
+      document.getElementById('roastText').textContent = data.roast || 'Koi baat nahi, sab theek hai!';
+      document.getElementById('roastEmoji').textContent = data.emoji || '🔥';
+      roastSection.style.display = 'block';
+    }
+
+    // ── Rebuild Plan ─────────────────────────────────────────────
+    function renderRebuild(data) {
+      document.getElementById('rb-frontend').textContent = data.frontend  || '—';
+      document.getElementById('rb-backend').textContent  = data.backend   || '—';
+      document.getElementById('rb-database').textContent = data.database  || '—';
+      document.getElementById('rb-infra').textContent    = data.infra     || '—';
+      document.getElementById('rb-timeline').textContent = data.timeline  || '—';
+      document.getElementById('rb-cost').textContent     = data.cost      || '—';
+      document.getElementById('rb-why').textContent      = data.why ? '💡 ' + data.why : '';
+      const impEl = document.getElementById('rb-improvements');
+      impEl.innerHTML = '';
+      (data.improvements || []).forEach(imp => {
+        const t = document.createElement('span');
+        t.className = 'improve-tag';
+        t.textContent = '✓ ' + imp;
+        impEl.appendChild(t);
+      });
+      rebuildSection.style.display = 'block';
+    }
+
+    // ── Fetch wrappers ───────────────────────────────────────────
+    async function fetchScorecard(analysisText) {
+      try {
+        const res = await fetch('/scorecard', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ analysisText }),
+        });
+        const data = await res.json();
+        if (data && !data.error) renderScorecard(data);
+      } catch(e) {}
+    }
+
+    async function fetchRoast(analysisText) {
+      try {
+        const res = await fetch('/roast', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ analysisText }),
+        });
+        const data = await res.json();
+        if (data && !data.error) renderRoast(data);
+      } catch(e) {}
+    }
+
+    async function fetchRebuild(analysisText) {
+      try {
+        const res = await fetch('/rebuild', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ analysisText }),
+        });
+        const data = await res.json();
+        if (data && !data.error) renderRebuild(data);
+      } catch(e) {}
     }
 
     async function renderVisualDiagram(data) {
@@ -653,7 +942,12 @@
       diagram.style.display = 'none';
       flowSection.style.display = 'none';
       visualDiagram.style.display = 'none';
+      scoreCard.style.display = 'none';
+      roastSection.style.display = 'none';
+      rebuildSection.style.display = 'none';
       document.getElementById('mermaidChart').innerHTML = '';
+      document.getElementById('roastBox').style.display = 'none';
+      document.getElementById('roastToggle').textContent = '🔥 AI Roast This Site — Click to Reveal';
       progressWrap.style.display = 'none';
       clearInterval(progressTimer);
 
@@ -716,9 +1010,12 @@
               serverStatus.style.borderColor = 'rgba(50,220,120,0.3)';
               serverStatus.style.color = '#40dd88';
               finishProgress();
-              // Fetch diagram and flow in parallel
+              // Fetch all sections in parallel
               fetchDiagram(rawText);
               fetchFlow(rawText, url);
+              fetchScorecard(rawText);
+              fetchRoast(rawText);
+              fetchRebuild(rawText);
             }
           }
         }

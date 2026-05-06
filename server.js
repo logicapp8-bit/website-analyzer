@@ -332,6 +332,145 @@ Rules:
   }
 });
 
+app.post("/scorecard", async (req, res) => {
+  const { analysisText } = req.body;
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey || !analysisText) return res.status(400).json({ error: "Missing data" });
+
+  try {
+    const groq = new Groq({ apiKey });
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [{
+        role: "user",
+        content: `Score this website's tech stack 0-10 in 4 categories based on the analysis below.
+
+Analysis: ${analysisText.slice(0, 1500)}
+
+Return ONLY valid JSON (no markdown):
+{"performance":{"score":7,"reason":"short reason max 8 words"},"security":{"score":5,"reason":"short reason max 8 words"},"modernity":{"score":8,"reason":"short reason max 8 words"},"scalability":{"score":6,"reason":"short reason max 8 words"}}
+
+Scoring guide:
+- performance: CDN usage, caching, asset optimization, HTTP/2
+- security: HTTPS, HSTS, CSP header, X-Frame-Options, secure cookies
+- modernity: framework versions, modern vs legacy tech (jQuery/PHP=low, Next.js/Go=high)
+- scalability: cloud hosting, containerization, microservices, load balancing
+Return only JSON.`
+      }],
+      max_tokens: 200,
+    });
+
+    const text = completion.choices[0]?.message?.content?.trim() || "{}";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    let data = {};
+    try { data = jsonMatch ? JSON.parse(jsonMatch[0]) : {}; } catch(e) { data = {}; }
+
+    // Normalize: AI sometimes returns flat {performance:8} instead of {performance:{score:8}}
+    ["performance","security","modernity","scalability"].forEach(k => {
+      if (typeof data[k] === "number") data[k] = { score: data[k], reason: "" };
+      if (!data[k]) data[k] = { score: 5, reason: "" };
+    });
+
+    // Calculate grade from actual scores
+    const scores = ["performance","security","modernity","scalability"].map(k => data[k].score || 5);
+    const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
+    data.grade = avg >= 9 ? "A+" : avg >= 8 ? "A" : avg >= 7 ? "B+" : avg >= 6 ? "B" : avg >= 5 ? "C+" : avg >= 4 ? "C" : "D";
+    data.avg = Math.round(avg * 10) / 10;
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/roast", async (req, res) => {
+  const { analysisText } = req.body;
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey || !analysisText) return res.status(400).json({ error: "Missing data" });
+
+  try {
+    const groq = new Groq({ apiKey });
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [{
+        role: "user",
+        content: `You are a funny tech roaster. Based on this website's tech stack analysis, write a witty 2-3 sentence roast in Hinglish (Hindi-English mix). Be playful and funny, not mean. Max 70 words.
+
+Tech Analysis: ${analysisText.slice(0, 1000)}
+
+Return ONLY valid JSON: {"roast":"your funny roast here","emoji":"one relevant emoji"}`
+      }],
+      max_tokens: 150,
+    });
+
+    const raw = completion.choices[0]?.message?.content?.trim() || "{}";
+    // Fix unquoted emoji values before parsing
+    const cleaned = raw.replace(/:\s*([^\s\[\]{},"][^,}\]]*[^\s,}\]])/g, (m, v) => {
+      if (v.startsWith('"') || v === 'true' || v === 'false' || v === 'null' || !isNaN(v)) return m;
+      return ': "' + v.replace(/"/g, '\\"') + '"';
+    });
+    let data = { roast: "Koi baat nahi, sabka apna style hota hai!", emoji: "🔥" };
+    try {
+      const jsonMatch = (cleaned.match(/\{[\s\S]*\}/) || raw.match(/\{[\s\S]*\}/));
+      if (jsonMatch) data = JSON.parse(jsonMatch[0]);
+    } catch(e) {
+      // Extract roast text manually if JSON broken
+      const roastMatch = raw.match(/"roast"\s*:\s*"([^"]+)"/);
+      if (roastMatch) data.roast = roastMatch[1];
+    }
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/rebuild", async (req, res) => {
+  const { analysisText } = req.body;
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey || !analysisText) return res.status(400).json({ error: "Missing data" });
+
+  try {
+    const groq = new Groq({ apiKey });
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [{
+        role: "user",
+        content: `Based on this website's current tech stack analysis, suggest a modern rebuild stack for 2025.
+
+Analysis: ${analysisText.slice(0, 1500)}
+
+Return ONLY valid JSON (no markdown):
+{"frontend":"modern framework + CSS choice","backend":"modern backend language/framework","database":"primary DB + cache","infra":"hosting + CDN choice","timeline":"X-Y months","cost":"$X-Y/month","why":"one sentence why this stack is better","improvements":["improvement 1","improvement 2","improvement 3"]}
+
+Rules:
+- Suggest realistic modern alternatives based on what they currently use
+- If already modern, suggest optimizations
+- Keep fields short and specific
+- improvements: 3 key things that will be better
+Return only JSON.`
+      }],
+      max_tokens: 300,
+    });
+
+    const text = completion.choices[0]?.message?.content?.trim() || "{}";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    let data = {};
+    try { data = jsonMatch ? JSON.parse(jsonMatch[0]) : {}; } catch(e) { data = {}; }
+
+    // Normalize fields — AI sometimes returns objects instead of strings
+    const strField = v => typeof v === "object" && v !== null ? Object.values(v).join(" + ") : (v || "—");
+    data.frontend = strField(data.frontend);
+    data.backend  = strField(data.backend);
+    data.database = strField(data.database);
+    data.infra    = strField(data.infra);
+    if (!Array.isArray(data.improvements)) data.improvements = [];
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3500;
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
