@@ -621,9 +621,9 @@
       flStatus.textContent = 'Connecting to website...';
       fullLoader.style.display = 'flex';
       flSetProgress(0);
-      setTimeout(() => { flSetProgress(8); flStatus.textContent = 'Fetching website content...'; }, 300);
-      setTimeout(() => { flStatus.textContent = 'Reading HTML & headers...'; }, 2000);
-      setTimeout(() => { flStatus.textContent = 'AI is analyzing tech stack...'; }, 4000);
+      setTimeout(() => { flSetProgress(8);  flStatus.textContent = 'Fetching website content...'; }, 300);
+      setTimeout(() => {                     flStatus.textContent = 'Reading HTML & headers...'; }, 2500);
+      setTimeout(() => {                     flStatus.textContent = 'AI is analyzing tech stack...'; }, 5000);
       let current = 8;
       progressTimer = setInterval(() => {
         if (current < 88) {
@@ -939,7 +939,14 @@
               flStatus.textContent = 'AI is analyzing ' + domain + '...';
             }
             if (data.done) {
-              // Wait for loader to fade out
+              flStatus.textContent = 'Loading diagrams & scores...';
+              // Fetch ALL sections in parallel while loader is still visible
+              await Promise.all([
+                fetchDiagram(rawText),
+                fetchScorecard(rawText),
+                fetchFlow(rawText, url),
+              ]);
+              // Everything ready — now hide loader
               await finishProgress();
               // Show server banner
               serverName.textContent = domain;
@@ -949,12 +956,9 @@
               serverStatus.style.borderColor = 'rgba(50,220,120,0.3)';
               serverStatus.style.color = '#40dd88';
               serverBanner.style.display = 'flex';
-              // Reveal everything at once
+              // Reveal everything at once — all already rendered
               result.innerHTML = renderMarkdown(rawText);
               result.style.display = 'block';
-              fetchDiagram(rawText);
-              fetchScorecard(rawText);
-              setTimeout(() => fetchFlow(rawText, url), 800);
             }
           }
         }
