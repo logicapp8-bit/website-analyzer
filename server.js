@@ -48,83 +48,69 @@ app.post("/analyze", async (req, res) => {
       "Cache-Control": "no-cache",
     };
 
-    let fetchResponse = await fetch(url, { headers: reqHeaders, signal: AbortSignal.timeout(20000) });
-
-    // If blocked, try HEAD request to get at least headers
     let html = "";
-    let blockedNote = "";
-    if (!fetchResponse.ok) {
-      const headResponse = await fetch(url, { method: "HEAD", headers: reqHeaders, signal: AbortSignal.timeout(10000) }).catch(() => null);
-      if (headResponse) {
-        fetchResponse = headResponse;
-        blockedNote = `Note: Website returned ${fetchResponse.status} (access restricted). Analysis based on HTTP headers only.`;
+    let headers = {};
+    let useKnowledgeMode = false;
+
+    try {
+      let fetchResponse = await fetch(url, { headers: reqHeaders, signal: AbortSignal.timeout(15000) });
+
+      if (!fetchResponse.ok) {
+        // Try HEAD to grab at least headers
+        const headResp = await fetch(url, { method: "HEAD", headers: reqHeaders, signal: AbortSignal.timeout(8000) }).catch(() => null);
+        if (headResp) {
+          const allH = Object.fromEntries(headResp.headers.entries());
+          headers = Object.fromEntries(Object.entries(allH).filter(([k]) =>
+            ["server","x-powered-by","content-type","via","x-generator","cache-control",
+             "strict-transport-security","cf-cache-status","x-vercel","x-amz"].some(h => k.toLowerCase().includes(h))
+          ));
+        } else {
+          useKnowledgeMode = true;
+        }
       } else {
-        res.write(`data: ${JSON.stringify({ error: `Could not access website (${fetchResponse.status}). The site may be blocking automated requests.` })}\n\n`);
-        return res.end();
+        html = await fetchResponse.text();
+        const allH = Object.fromEntries(fetchResponse.headers.entries());
+        headers = Object.fromEntries(Object.entries(allH).filter(([k]) =>
+          ["server","x-powered-by","content-type","via","x-generator","cache-control",
+           "strict-transport-security","cf-cache-status","x-vercel","x-amz"].some(h => k.toLowerCase().includes(h))
+        ));
       }
-    } else {
-      html = await fetchResponse.text();
+    } catch (e) {
+      useKnowledgeMode = true;
     }
 
-    // Take start + end of HTML — script tags are usually at bottom
     const truncatedHtml = html.length > 5000
       ? html.slice(0, 2500) + "\n...\n" + html.slice(-2500)
       : html;
-    const allHeaders = Object.fromEntries(fetchResponse.headers.entries());
-    const headers = Object.fromEntries(
-      Object.entries(allHeaders).filter(([k]) =>
-        ["server","x-powered-by","set-cookie","content-type","via","x-generator",
-         "cache-control","strict-transport-security","x-framework","x-drupal-cache",
-         "x-wordpress","cf-cache-status","x-vercel","x-amz","x-cache"].some(h => k.toLowerCase().includes(h))
-      )
-    );
 
-    // Try fetching common backend config files in parallel
-    const configPaths = [
-      "/package.json",           // Node.js — mongoose=MongoDB, pg=PostgreSQL, mysql2=MySQL, mssql=SQLServer
-      "/package-lock.json",      // More dependency details
-      "/composer.json",          // PHP — doctrine=SQL, mongodb=MongoDB, laravel=MySQL
-      "/requirements.txt",       // Python — psycopg2=PostgreSQL, pymongo=MongoDB, mysqlclient=MySQL
-      "/Pipfile",                // Python Pipfile
-      "/Gemfile",                // Ruby — pg=PostgreSQL, mysql2=MySQL, mongoid=MongoDB, sqlite3=SQLite
-      "/Procfile",               // Heroku — DB URL hints
-      "/robots.txt",             // CMS hints
-      "/wp-login.php",           // WordPress = MySQL
-      "/config/database.yml",    // Rails DB config — adapter: postgresql/mysql/sqlite3
-      "/config/database.json",   // Generic DB config
-      "/.env.example",           // DB_CONNECTION, DATABASE_URL hints
-      "/app/etc/env.php",        // Magento = MySQL
-      "/pom.xml",                // Java — hibernate dialect hints
-      "/build.gradle",           // Java/Kotlin — DB dependencies
-      "/go.mod",                 // Go — database driver hints
-      "/pyproject.toml",         // Python modern config
-    ];
-    const baseUrl = new URL(url).origin;
-    const configResults = await Promise.allSettled(
-      configPaths.map(p =>
-        fetch(baseUrl + p, {
-          headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Cache-Control": "no-cache",
-      },
-          signal: AbortSignal.timeout(4000),
-        }).then(r => r.ok ? r.text().then(t => ({ path: p, content: t.slice(0, 800) })) : null)
-        .catch(() => null)
-      )
-    );
-    const configFiles = configResults
-      .filter(r => r.status === "fulfilled" && r.value)
-      .map(r => `--- ${r.value.path} ---\n${r.value.content.slice(0, 300)}`)
-      .join("\n\n");
+    // Try config files only if we got some HTML/headers
+    let configFiles = "";
+    if (!useKnowledgeMode) {
+      const configPaths = ["/package.json","/composer.json","/requirements.txt","/Gemfile","/robots.txt","/wp-login.php","/go.mod","/pyproject.toml"];
+      const baseUrl = new URL(url).origin;
+      const configResults = await Promise.allSettled(
+        configPaths.map(p =>
+          fetch(baseUrl + p, { headers: reqHeaders, signal: AbortSignal.timeout(4000) })
+            .then(r => r.ok ? r.text().then(t => ({ path: p, content: t.slice(0, 300) })) : null)
+            .catch(() => null)
+        )
+      );
+      configFiles = configResults
+        .filter(r => r.status === "fulfilled" && r.value)
+        .map(r => `--- ${r.value.path} ---\n${r.value.content}`)
+        .join("\n\n");
+    }
 
-    console.log("Config files found:", configResults.filter(r => r.status === "fulfilled" && r.value).map(r => r.value.path));
+    const domain = new URL(url).hostname;
 
-    const prompt = `You are a senior web architect analyzing a website's technology stack. Based on the data below, write a clear and informative analysis. Only describe technologies that are ACTUALLY DETECTED — skip anything not found.
+    const prompt = useKnowledgeMode
+      ? `You are a senior web architect. The website ${url} is blocking direct access from our server (common for major e-commerce/banking sites). Use your training knowledge about this well-known website to analyze its tech stack.
+
+Write a detailed, accurate analysis based on what is publicly known about ${domain}. Be specific and confident.`
+      : `You are a senior web architect analyzing a website's technology stack. Based on the data below, write a clear and informative analysis. Only describe technologies that are ACTUALLY DETECTED — skip anything not found.
 
 URL: ${url}
-${blockedNote ? blockedNote + "\n" : ""}HTTP Headers: ${JSON.stringify(headers)}
+HTTP Headers: ${JSON.stringify(headers)}
 HTML Source: ${truncatedHtml}
 ${configFiles ? `Config Files:\n${configFiles}` : ""}
 
@@ -138,22 +124,22 @@ RULES:
 - Skip any section where nothing is detected
 
 ## 🎨 Frontend Technologies
-Detected frameworks, UI libraries, CSS systems, fonts, icons. Explain what role each plays in building the UI.
+Frameworks, UI libraries, CSS systems, fonts, icons and their role in the UI.
 
 ## 🏗️ Frontend Architecture
-How the site renders pages (SSR/CSR/SSG), how state is managed, any performance optimizations like lazy loading or PWA.
+How pages render (SSR/CSR/SSG), state management, performance optimizations.
 
 ## ⚙️ Backend & Server
-Web server software, backend language/framework, how requests are handled.
+Web server, backend language/framework, how requests are handled.
 
 ## 🗄️ Database
-Database system in use and why it suits this application's data needs.
+Database system in use and why it fits this application.
 
 ## 🔧 Security
-Security measures in place — HTTPS, headers, cookie policies and what they protect against.
+HTTPS, security headers, cookie policies and what they protect against.
 
 ## 🌐 Infrastructure
-Hosting provider, CDN, analytics tools and what they contribute to the site's delivery and tracking.`;
+Hosting, CDN, analytics tools and what they contribute.`;
 
     const groq = new Groq({ apiKey });
     const stream = await groq.chat.completions.create({
@@ -165,9 +151,7 @@ Hosting provider, CDN, analytics tools and what they contribute to the site's de
 
     for await (const chunk of stream) {
       const text = chunk.choices[0]?.delta?.content || "";
-      if (text) {
-        res.write(`data: ${JSON.stringify({ text })}\n\n`);
-      }
+      if (text) res.write(`data: ${JSON.stringify({ text })}\n\n`);
     }
 
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
@@ -175,8 +159,6 @@ Hosting provider, CDN, analytics tools and what they contribute to the site's de
   } catch (err) {
     let msg = err.message;
     if (err.name === "TimeoutError") msg = "Website took too long to respond. Please try again.";
-    else if (msg === "fetch failed" || msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND"))
-      msg = "Cannot reach this website from our server. It may be blocking cloud/datacenter requests (common with Flipkart, Amazon, banking sites). Try a different URL.";
     res.write(`data: ${JSON.stringify({ error: msg })}\n\n`);
     res.end();
   }
